@@ -387,14 +387,10 @@ function Home({ session }) {
 
 export default function App() {
   const [view, setView] = useState('home')
-  const [session, setSession] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const stored = getSession()
-    setSession(stored)
-    setLoading(false)
-  }, [])
+  const [session, setSession] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null } catch { return null }
+  })
+  const [loading] = useState(false)
 
   const handleAuthSuccess = () => {
     setSession(getSession())

@@ -2,39 +2,25 @@ import { useState, useEffect } from 'react'
 
 export default function ResendTimer({ onResend, cooldownSeconds = 30 }) {
   const [secondsLeft, setSecondsLeft] = useState(0)
-  const [canResend, setCanResend] = useState(true)
 
   useEffect(() => {
-    if (canResend) return
-
-    setSecondsLeft(cooldownSeconds)
-    const interval = setInterval(() => {
-      setSecondsLeft((prev) => prev - 1)
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [canResend, cooldownSeconds])
-
-  useEffect(() => {
-    if (secondsLeft <= 0 && !canResend) {
-      setCanResend(true)
-    }
-  }, [secondsLeft, canResend])
+    if (secondsLeft <= 0) return
+    const t = setTimeout(() => setSecondsLeft(s => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [secondsLeft])
 
   const handleResend = () => {
-    if (!canResend) return
-    setCanResend(false)
+    if (secondsLeft > 0) return
+    setSecondsLeft(cooldownSeconds)
     onResend()
   }
 
   return (
     <div className="flex flex-col items-center gap-1">
-      {!canResend ? (
+      {secondsLeft > 0 ? (
         <p className="text-cream-300 text-sm font-sans">
           Resend code in{' '}
-          <span className="font-mono text-amber-400" aria-live="polite">
-            {secondsLeft}s
-          </span>
+          <span className="font-mono text-amber-400" aria-live="polite">{secondsLeft}s</span>
         </p>
       ) : (
         <button
