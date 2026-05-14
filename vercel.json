@@ -1,0 +1,10 @@
+{
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "dist",
+  "installCommand": null,
+  "devCommand": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/dist/$1" }
+  ]
+}
