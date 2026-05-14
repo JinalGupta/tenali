@@ -3,6 +3,7 @@ import OTPInput from './components/auth/OTPInput'
 import StepIndicator from './components/auth/StepIndicator'
 import PasswordField from './components/auth/PasswordField'
 import { sendOTP, verifyOTP, registerUser, loginUser, resetPassword } from './lib/email'
+import Dashboard from './pages/dashboard/Dashboard'
 
 // ─── SESSION MANAGEMENT ─────────────────────────────
 const SESSION_KEY = 'math_session'
@@ -420,7 +421,7 @@ export default function App() {
 
       <Header session={session} onSignOut={handleSignOut} />
 
-      {view === 'home' && session && <Home session={session} />}
+      {view === 'home' && session && <Home session={session} onExplore={() => setView('dashboard')} />}
       {view === 'home' && !session && (
         <div className="text-center pt-40 px-6">
           <div className="inline-block px-4 py-1.5 bg-teal-400/10 border border-teal-400/20 rounded-full text-teal-400 text-sm font-semibold mb-8">
@@ -438,8 +439,9 @@ export default function App() {
           </div>
         </div>
       )}
-      {view === 'register' && <Register onSwitch={() => setView('login')} onSuccess={handleAuthSuccess} />}
+      {view === 'dashboard' && session && <Dashboard session={session} onSignOut={handleSignOut} />}
       {view === 'login' && <Login onSwitch={() => setView('register')} onSuccess={handleAuthSuccess} onForgot={() => setView('forgot')} />}
+      {view === 'register' && <Register onSwitch={() => setView('login')} onSuccess={() => { handleAuthSuccess(); setView('dashboard') }} />}
       {view === 'forgot' && <ForgotPassword onBack={() => setView('login')} />}
     </div>
   )
