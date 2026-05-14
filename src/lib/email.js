@@ -10,7 +10,7 @@ export async function sendOTP(email) {
     const data = await response.json();
     if (!response.ok) return { error: data.message || 'Failed to send OTP' };
     return { data };
-  } catch (err) {
+  } catch {
     return { error: 'Network error. Is the backend server running?' };
   }
 }
@@ -25,7 +25,7 @@ export async function verifyOTP(email, code) {
     const data = await response.json();
     if (!response.ok) return { error: data.message || 'Verification failed' };
     return { data }; // data.token is returned here
-  } catch (err) {
+  } catch {
     return { error: 'Network error. Is the backend server running?' };
   }
 }
@@ -40,7 +40,7 @@ export async function registerUser({ email, name, password, token }) {
     const data = await response.json();
     if (!response.ok) return { error: data.message || 'Registration failed' };
     return { data };
-  } catch (err) {
+  } catch {
     return { error: 'Network error. Is the backend server running?' };
   }
 }
@@ -55,7 +55,7 @@ export async function loginUser({ email, password }) {
     const data = await response.json();
     if (!response.ok) return { error: data.message || 'Login failed' };
     return { data };
-  } catch (err) {
+  } catch {
     return { error: 'Network error. Is the backend server running?' };
   }
 }
@@ -70,11 +70,11 @@ export async function resetPassword({ email, password, token }) {
     const data = await response.json();
     if (!response.ok) return { error: data.message || 'Password reset failed' };
     return { data };
-  } catch (err) {
+  } catch {
     return { error: 'Network error. Is the backend server running?' };
   }
 }
 
-export function getOTPStatus(email) {
+export function getOTPStatus() {
   return { canResend: true, resendCount: 0, secondsLeft: 0 };
 }

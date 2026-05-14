@@ -5,21 +5,21 @@ export default function ResendTimer({ onResend, cooldownSeconds = 30 }) {
   const [canResend, setCanResend] = useState(true)
 
   useEffect(() => {
-    if (!canResend) {
-      setSecondsLeft(cooldownSeconds)
-      const interval = setInterval(() => {
-        setSecondsLeft((prev) => {
-          if (prev <= 1) {
-            setCanResend(true)
-            clearInterval(interval)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-      return () => clearInterval(interval)
+    if (canResend) return
+
+    setSecondsLeft(cooldownSeconds)
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [canResend, cooldownSeconds])
+
+  useEffect(() => {
+    if (secondsLeft <= 0 && !canResend) {
+      setCanResend(true)
     }
-  }, [canResend])
+  }, [secondsLeft, canResend])
 
   const handleResend = () => {
     if (!canResend) return
