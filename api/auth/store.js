@@ -1,0 +1,1 @@
+module.exports = { otpStore: {}, verifiedTokens: {}, OTP_EXPIRY_MS: 5 * 60 * 1000, TOKEN_EXPIRY_MS: 15 * 60 * 1000 };
