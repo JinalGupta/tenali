@@ -95,8 +95,8 @@ export default function Dashboard({ session, onSignOut }) {
     return (
       <LearningLoop
         theoremId={activeTheorem}
-        onComplete={() => setActiveTheorem(null)}
-        onExit={() => setActiveTheorem(null)}
+        onComplete={() => { setProgressData([]); setActiveTheorem(null) }}
+        onExit={() => { setProgressData([]); setActiveTheorem(null) }}
         userId={userId}
       />
     )
