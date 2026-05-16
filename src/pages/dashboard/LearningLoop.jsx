@@ -1,25 +1,25 @@
 import { useState, useEffect, useRef } from 'react'
 import theorems from '../../data/theorems.json'
-import fermatsLastData from '../../data/fermats-last.json'
-import pythagoreanData from '../../data/pythagorean.json'
-import eulerFormulaData from '../../data/euler-formula.json'
-import fundamentalTheoremData from '../../data/fundamental-theorem.json'
-import infinitePiData from '../../data/infinite-pi.json'
-import goldbachConjectureData from '../../data/goldbach-conjecture.json'
-import banachTarskiData from '../../data/banach-tarski.json'
+import fermatsLittleData from '../../data/fermats-little.json'
+import handshakeData from '../../data/handshake.json'
+import chineseRemainderData from '../../data/chinese-remainder.json'
+import couponCollectorData from '../../data/coupon-collector.json'
+import euclideanAlgorithmData from '../../data/euclidean-algorithm.json'
+import modularInverseData from '../../data/modular-inverse.json'
+import binaryExponentiationData from '../../data/binary-exponentiation.json'
 import { fetchProgress, saveProgress, recordAttempt, XP_FIRST_ATTEMPT, XP_AFTER_HINT, XP_STAGE_COMPLETE, XP_MASTERY } from '../../lib/progress'
 
 const STAGE_CORRECTS_NEEDED = 3
 const MAX_RETRIES = 2
 
 const QUESTION_BANKS = {
-  'fermats-last': fermatsLastData,
-  'pythagorean': pythagoreanData,
-  'euler-formula': eulerFormulaData,
-  'fundamental-theorem': fundamentalTheoremData,
-  'infinite-pi': infinitePiData,
-  'goldbach-conjecture': goldbachConjectureData,
-  'banach-tarski': banachTarskiData,
+  'fermats-little': fermatsLittleData,
+  'handshake': handshakeData,
+  'chinese-remainder': chineseRemainderData,
+  'coupon-collector': couponCollectorData,
+  'euclidean-algorithm': euclideanAlgorithmData,
+  'modular-inverse': modularInverseData,
+  'binary-exponentiation': binaryExponentiationData,
 }
 
 export default function LearningLoop({ theoremId, onComplete, onExit, userId }) {

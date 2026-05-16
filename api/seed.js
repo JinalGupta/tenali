@@ -1,34 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
-import fermatsLastData from '../../src/data/fermats-last.json';
-import pythagoreanData from '../../src/data/pythagorean.json';
-import eulerFormulaData from '../../src/data/euler-formula.json';
-import fundamentalTheoremData from '../../src/data/fundamental-theorem.json';
-import infinitePiData from '../../src/data/infinite-pi.json';
-import goldbachConjectureData from '../../src/data/goldbach-conjecture.json';
-import banachTarskiData from '../../src/data/banach-tarski.json';
+import fermatsLittleData from '../../src/data/fermats-little.json';
+import handshakeData from '../../src/data/handshake.json';
+import chineseRemainderData from '../../src/data/chinese-remainder.json';
+import couponCollectorData from '../../src/data/coupon-collector.json';
+import euclideanAlgorithmData from '../../src/data/euclidean-algorithm.json';
+import modularInverseData from '../../src/data/modular-inverse.json';
+import binaryExponentiationData from '../../src/data/binary-exponentiation.json';
 
 const supabaseUrl = 'https://gwmciomzyaujlpsquvbz.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3bWNpb216eWF1amxwc3F1dmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTA4NzQsImV4cCI6MjA5NDMyNjg3NH0.k0t6iwmH_4OiFOEqTjX888CybFOH53L9Fs0-98YVuPE';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const QUESTION_BANKS = {
-  'fermats-last': fermatsLastData,
-  'pythagorean': pythagoreanData,
-  'euler-formula': eulerFormulaData,
-  'fundamental-theorem': fundamentalTheoremData,
-  'infinite-pi': infinitePiData,
-  'goldbach-conjecture': goldbachConjectureData,
-  'banach-tarski': banachTarskiData,
+  'fermats-little': fermatsLittleData,
+  'handshake': handshakeData,
+  'chinese-remainder': chineseRemainderData,
+  'coupon-collector': couponCollectorData,
+  'euclidean-algorithm': euclideanAlgorithmData,
+  'modular-inverse': modularInverseData,
+  'binary-exponentiation': binaryExponentiationData,
 };
 
-const THEOREM_META = {
-  'pythagorean': { title: 'Pythagorean Theorem', core_idea: 'In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides.', icon: 'pythagorean', color: 'bg-amber-400/20' },
-  'fermats-last': { title: "Fermat's Last Theorem", core_idea: 'No three positive integers satisfy aⁿ + bⁿ = cⁿ for any integer n greater than two.', icon: 'fermats-last', color: 'bg-teal-400/20' },
-  'euler-formula': { title: "Euler's Identity", core_idea: 'e^(iπ) + 1 = 0 — the most beautiful equation connecting five fundamental constants.', icon: 'euler-formula', color: 'bg-purple-400/20' },
-  'fundamental-theorem': { title: 'Fundamental Theorem of Calculus', core_idea: 'Integration and differentiation are inverse operations.', icon: 'fundamental-theorem', color: 'bg-green-400/20' },
-  'infinite-pi': { title: 'Leibniz Formula for π', core_idea: 'π can be computed by an infinite series: π/4 = 1 - 1/3 + 1/5 - 1/7 + ...', icon: 'infinite-pi', color: 'bg-blue-400/20' },
-  'goldbach-conjecture': { title: "Goldbach's Conjecture", core_idea: 'Every even integer greater than 2 is the sum of two prime numbers.', icon: 'goldbach-conjecture', color: 'bg-coral-400/20' },
-  'banach-tarski': { title: 'Banach-Tarski Paradox', core_idea: 'A solid sphere can be decomposed and reassembled into two identical copies of itself.', icon: 'banach-tarski', color: 'bg-pink-400/20' },
+const META = {
+  'fermats-little': { title: "Fermat's Little Theorem", icon: 'fermats-little', color: 'bg-teal-400/20' },
+  'handshake': { title: 'The Handshake Problem', icon: 'handshake', color: 'bg-amber-400/20' },
+  'chinese-remainder': { title: 'Chinese Remainder Theorem', icon: 'chinese-remainder', color: 'bg-purple-400/20' },
+  'coupon-collector': { title: 'Coupon Collector Problem', icon: 'coupon-collector', color: 'bg-green-400/20' },
+  'euclidean-algorithm': { title: 'The Euclidean Algorithm', icon: 'euclidean-algorithm', color: 'bg-blue-400/20' },
+  'modular-inverse': { title: 'Modular Multiplicative Inverse', icon: 'modular-inverse', color: 'bg-coral-400/20' },
+  'binary-exponentiation': { title: 'Binary Exponentiation', icon: 'binary-exponentiation', color: 'bg-pink-400/20' },
 };
 
 export default async function handler(req, res) {
@@ -37,13 +37,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Seed case_studies
-    const caseStudies = Object.entries(THEOREM_META).map(([id, meta]) => {
+    const caseStudies = Object.entries(META).map(([id, meta]) => {
       const kb = QUESTION_BANKS[id];
       return {
         id,
         title: meta.title,
-        core_idea: meta.core_idea,
+        core_idea: kb.story.intro,
         story_intro: kb.story.intro,
         real_world: kb.story.applications,
         icon: meta.icon,
@@ -54,7 +53,6 @@ export default async function handler(req, res) {
     const { error: csError } = await supabase.from('case_studies').upsert(caseStudies, { onConflict: 'id' });
     if (csError) throw csError;
 
-    // Seed stages
     const allStages = [];
     for (const [caseStudyId, kb] of Object.entries(QUESTION_BANKS)) {
       for (const stage of kb.stages) {
