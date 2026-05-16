@@ -76,7 +76,7 @@ export default function Dashboard({ session, onSignOut }) {
     fetchProgress(userId).then(data => {
       setProgressData(data || [])
     }).catch(() => {})
-  }, [userId])
+  }, [userId, activeTheorem])
 
   // Build progress map: caseStudyId -> { status, current_stage, xp_earned, total_stages }
   const progressMap = {}
@@ -142,6 +142,7 @@ export default function Dashboard({ session, onSignOut }) {
               <CaseStudyCard
                 key={theorem.id}
                 theorem={theorem}
+                illustration={theoremIllustrations[theorem.id] || null}
                 progress={prog}
                 onClick={() => setActiveTheorem(theorem.id)}
               />

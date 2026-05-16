@@ -1,4 +1,4 @@
-export default function CaseStudyCard({ theorem, onClick, progress = {} }) {
+export default function CaseStudyCard({ theorem, onClick, progress = {}, illustration = null }) {
   const { status = 'not_started', current_stage = 0, xp_earned = 0, total_stages = 0 } = progress;
 
   const STATUS_CONFIG = {
@@ -31,7 +31,7 @@ export default function CaseStudyCard({ theorem, onClick, progress = {} }) {
     >
       {/* Illustration */}
       <div className="w-full aspect-square mb-5 rounded-2xl overflow-hidden bg-navy-950 border border-white/5 flex items-center justify-center p-4 group-hover:border-teal-400/20 transition-colors">
-        {theorem.icon}
+        {illustration || <div className="text-cream-300/30 text-4xl">{theorem.theorem.charAt(0)}</div>}
       </div>
 
       {/* Status badge */}
