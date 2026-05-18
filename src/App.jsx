@@ -54,6 +54,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { MotionConfig } from 'framer-motion'
 
 // ── Auth sub-components ──────────────────────────────────────────────────────
 import OTPInput    from './components/auth/OTPInput'
@@ -600,6 +601,7 @@ export default function App() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-screen bg-navy-950 flex flex-col items-center relative overflow-x-hidden">
 
       {/* Ambient background glow blobs */}
@@ -671,5 +673,6 @@ export default function App() {
       )}
 
     </div>
+    </MotionConfig>
   )
 }

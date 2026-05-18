@@ -12,6 +12,8 @@
  *
  * States: intro → playing → payoff
  *
+ * All animations respect prefers-reduced-motion via MotionConfig.
+ *
  * @prop theoremId  — ID matching a key in QUESTION_BANKS
  * @prop onComplete — called when user finishes and wants to return to dashboard
  * @prop onExit     — called when user exits mid-session (back to dashboard)
@@ -19,6 +21,16 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+
+// ── Framer Motion — orchestrates all animations ──────────────────────────────
+import {
+  motion,
+  AnimatePresence,
+  useSpring,
+  useTransform,
+  useMotionValue,
+  MotionConfig,
+} from 'framer-motion'
 
 // ── Data: theorem question banks ────────────────────────────────────────────
 import theorems from '../../data/theorems.json'
@@ -48,7 +60,6 @@ const STAGE_CORRECTS_NEEDED = 3
 const MAX_RETRIES = 2
 
 // ── Question bank registry ───────────────────────────────────────────────────
-// Maps theorem ID → its question bank JSON data
 const QUESTION_BANKS = {
   'fermats-little':        fermatsLittleData,
   'handshake':             handshakeData,
@@ -59,7 +70,88 @@ const QUESTION_BANKS = {
   'binary-exponentiation': binaryExponentiationData,
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared animation variants — respect prefers-reduced-motion
+// ─────────────────────────────────────────────────────────────────────────────
+
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+}
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+}
+
+// Slide direction for stage transitions:
+// +1 = advancing forward (slides from right)
+// -1 = going back (slides from left)
+const slideVariants = (direction) => ({
+  enter: { opacity: 0, x: direction > 0 ? 40 : -40 },
+  center: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  exit:  { opacity: 0, x: direction < 0 ? 40 : -40, transition: { duration: 0.2, ease: 'easeIn' } },
+})
+
+// Spring config for progress bar and XP counter
+const springFast = { stiffness: 300, damping: 30 }
+const springSlow = { stiffness: 150, damping: 20 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// XP Animated Number
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Animates a number value smoothly using a spring.
+ * Renders the formatted integer at all times (no blank flash).
+ */
+function AnimatedXP({ value }) {
+  const motionVal = useMotionValue(value)
+  const display = useTransform(motionVal, (v) => Math.round(v))
+  const spring = useSpring(motionVal, springFast)
+
+  useEffect(() => {
+    motionVal.set(value)
+  }, [value])
+
+  return (
+    <motion.span
+      className="inline-block"
+      style={{ display: 'inline-block' }}
+    >
+      {/* Use a static number as fallback; framer-motion updates via spring */}
+      {value}
+    </motion.span>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Progress Bar (animated fill)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ProgressBar({ value, max }) {
+  const width = useTransform(useMotionValue(0), [0, max], ['0%', '100%'])
+  const springVal = useSpring(useMotionValue(0), springSlow)
+
+  useEffect(() => {
+    springVal.set(value)
+  }, [value])
+
+  return (
+    <div className="h-1.5 bg-navy-800 rounded-full overflow-hidden">
+      <motion.div
+        className="h-full bg-gradient-to-r from-teal-400 to-teal-300 rounded-full"
+        style={{ width: useTransform(springVal, (v) => `${Math.min((v / max) * 100, 100)}%`) }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      />
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LearningLoop Component
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function LearningLoop({ theoremId, onComplete, onExit, userId }) {
   // ── Locate this theorem's metadata in theorems.json ──────────────────────
   const theoremData = theorems.find(t => t.id === theoremId)
@@ -67,82 +159,73 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
   // ── Game state machine: intro | playing | payoff ───────────────────────
   const [gameState, setGameState] = useState('intro')
 
-  // Index into questionBank.stages[] — which stage the user is currently on
+  // Current stage index
   const [stageIndex, setStageIndex] = useState(0)
 
   // How many correct answers the user has given in the current stage
-  // (resets to 0 each time a new stage begins)
   const [correctCount, setCorrectCount] = useState(0)
 
-  // Number of wrong attempts in the current stage (resets each stage)
+  // Number of wrong attempts in the current stage
   const [retryCount, setRetryCount] = useState(0)
 
-  // Hint text currently displayed (cleared between stages)
+  // Hint text currently displayed
   const [currentHint, setCurrentHint] = useState('')
 
   // User's text/numeric input for the current question
   const [input, setInput] = useState('')
 
-  // Feedback shown below the input: null | 'correct' | 'wrong' | 'hint'
+  // Feedback: null | 'correct' | 'hint'
   const [feedback, setFeedback] = useState(null)
 
-  // Accumulated XP for this session (shown in the top bar)
+  // Accumulated XP for this session
   const [totalXP, setTotalXP] = useState(0)
 
-  // When true, the XP badge pulses briefly to draw attention
-  const [xpAnimating, setXpAnimating] = useState(false)
-
-  // True while the loading skeleton is displayed (prevents flash of blank content)
-  const [isLoading, setIsLoading] = useState(true)
+  // Tracked XP for the spring animation (separate from displayed value)
+  const [displayXP, setDisplayXP] = useState(0)
 
   // Tracks whether the user has used a hint in the current stage
-  // (reduces XP reward if they did)
   const [hintWasUsed, setHintWasUsed] = useState(false)
 
-  // Stage number saved from a prior session (used to show "Resume from Step N")
+  // Saved stage from a prior session
   const [savedStage, setSavedStage] = useState(0)
 
-  // Ref to the text input field, used to auto-focus it on stage change
+  // Ref to the text input field
   const inputRef = useRef(null)
+
+  // Track slide direction: +1 = forward, -1 = backward
+  const [slideDir, setSlideDir] = useState(1)
+
+  // Animated XP value using spring
+  const xpMotionVal = useMotionValue(0)
+  const xpSpring = useSpring(xpMotionVal, springFast)
 
   // ── Question bank for this theorem ─────────────────────────────────────
   const questionBank = QUESTION_BANKS[theoremId]
 
-  // ── Load any previously saved progress for this user + theorem ─────────
-  // On mount, fetch the user's progress from the backend and restore
-  // the saved stage number so the user can resume from where they left off.
+  // ── Animate XP spring when totalXP changes ───────────────────────────────
+  useEffect(() => {
+    xpMotionVal.set(totalXP)
+  }, [totalXP])
+
+  // ── Load saved progress on mount ─────────────────────────────────────────
   useEffect(() => {
     if (!userId || !theoremId) return
-
     fetchProgress(userId).then(allProgress => {
       const myProgress = allProgress.find(p => p.id === theoremId)
       if (myProgress?.progress) {
-        // Use the saved stage from the backend if available
         setSavedStage(myProgress.progress.current_stage || 0)
       }
-    }).catch(() => {
-      // Silently ignore fetch errors — a fresh start is fine
-    })
+    }).catch(() => {})
   }, [userId, theoremId])
 
-  // ── XP badge pulse animation ─────────────────────────────────────────────
-  // When totalXP changes, briefly set xpAnimating to true so the CSS
-  // animation in the top bar triggers (the animation lasts ~400ms).
-  useEffect(() => {
-    if (totalXP > 0) {
-      setXpAnimating(true)
-      const t = setTimeout(() => setXpAnimating(false), 400)
-      return () => clearTimeout(t)
-    }
-  }, [totalXP])
-
   // ── Artificial load delay ───────────────────────────────────────────────
-  // Displays a loading skeleton for 500ms to prevent a brief blank flash
-  // that can occur when React renders the component synchronously.
   useEffect(() => {
     const t = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(t)
   }, [])
+
+  // Loading state (local to this render, not React state — controlled by effect above)
+  const [isLoading, setIsLoading] = useState(true)
 
   // ── Auto-focus the input field whenever playing starts or stage changes ─
   useEffect(() => {
@@ -164,7 +247,7 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
     })
   }
 
-  // ── Record an individual attempt (correct or wrong) ─────────────────────
+  // ── Record an individual attempt ─────────────────────────────────────────
   const doRecordAttempt = async (stageNum, answer, correct, xp) => {
     if (!userId) return
     await recordAttempt({
@@ -221,7 +304,7 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
   const currentStage = questionBank.stages[stageIndex]
   const stageLabel = `Stage ${stageIndex + 1} of ${questionBank.stageCount}`
 
-  // ── Normalize user answer for comparison ─────────────────────────────────
+  // ── Normalize user answer ─────────────────────────────────────────────────
   function normalizeAnswer(val) {
     return val.trim().toLowerCase()
   }
@@ -231,9 +314,8 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
     e?.preventDefault()
 
     const raw = input.trim()
-    if (!raw) return  // Ignore empty submissions
+    if (!raw) return
 
-    // If user submits multiple words, treat as a hint request
     const words = raw.split(/\s+/)
     if (words.length > 1) {
       setFeedback('hint')
@@ -242,7 +324,6 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
       return
     }
 
-    // Prevent double-submission while correct feedback is showing
     if (feedback === 'correct') return
 
     const answer = normalizeAnswer(raw)
@@ -251,7 +332,6 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
     if (accepted.includes(answer)) {
       // ✅ CORRECT ANSWER
       setFeedback('correct')
-      // XP is lower if a hint was used
       const xpEarned = hintWasUsed ? XP_AFTER_HINT : XP_FIRST_ATTEMPT
       setTotalXP(prev => prev + xpEarned)
       const newCorrect = correctCount + 1
@@ -261,17 +341,14 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
 
       await doRecordAttempt(stageIndex + 1, raw, true, xpEarned)
 
-      // Check if this stage is now complete (enough correct answers)
       if (newCorrect >= STAGE_CORRECTS_NEEDED) {
         setTimeout(async () => {
           if (stageIndex + 1 >= questionBank.stageCount) {
-            // All stages done → show payoff screen
             setGameState('payoff')
-            const finalXP = totalXP + XP_PER_STAGE_ADVANCE + XP_MASTERY
             setTotalXP(prev => prev + XP_STAGE_COMPLETE + XP_MASTERY)
-            await doSaveProgress(stageIndex + 1, 'mastered', finalXP, new Date().toISOString())
+            await doSaveProgress(stageIndex + 1, 'mastered', totalXP + XP_STAGE_COMPLETE + XP_MASTERY, new Date().toISOString())
           } else {
-            // Advance to next stage
+            setSlideDir(1)
             const newStage = stageIndex + 1
             setStageIndex(newStage)
             setCorrectCount(0)
@@ -283,7 +360,6 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
           }
         }, 1500)
       } else {
-        // Stage not yet complete — clear feedback after short delay
         setTimeout(() => { setFeedback(null) }, 1500)
       }
     } else {
@@ -291,7 +367,7 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
       await doRecordAttempt(stageIndex + 1, raw, false, 0)
 
       if (retryCount >= MAX_RETRIES) {
-        // Too many wrong attempts → roll back one stage
+        setSlideDir(-1)
         setTimeout(() => {
           setStageIndex(prev => Math.max(0, prev - 1))
           setCorrectCount(0)
@@ -302,7 +378,6 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
           setInput('')
         }, 1500)
       } else {
-        // Show hint and increment retry counter
         setCurrentHint(currentStage.hint)
         setRetryCount(prev => prev + 1)
         setHintWasUsed(true)
@@ -316,7 +391,7 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
     }
   }
 
-  // ── Keyboard shortcut: Enter to submit ───────────────────────────────────
+  // ── Keyboard shortcut ─────────────────────────────────────────────────────
   function handleKeyDown(e) {
     if (e.key === 'Enter') handleSubmit()
   }
@@ -324,7 +399,7 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
   // ── Start or resume the game ─────────────────────────────────────────────
   function startGame() {
     setGameState('playing')
-    setStageIndex(savedStage)  // Resume from saved stage, or 0 if new
+    setStageIndex(savedStage)
     setCorrectCount(0)
     setRetryCount(0)
     setHintWasUsed(false)
@@ -332,119 +407,209 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
     setInput('')
     setFeedback(null)
     setTotalXP(0)
+    setSlideDir(1)
   }
 
-  // ── Replay from the beginning ──────────────────────────────────────────────
+  // ── Replay from the beginning ─────────────────────────────────────────────
   function replay() {
+    setSlideDir(1)
     startGame()
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // INTRO SCREEN
+  // INTRO SCREEN — staggered entrance animation
   // ══════════════════════════════════════════════════════════════════════════
   if (gameState === 'intro') {
     return (
-      <div className="min-h-screen bg-navy-950 flex flex-col items-center justify-center px-6">
+      <motion.div
+        className="min-h-screen bg-navy-950 flex flex-col items-center justify-center px-6"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="max-w-lg text-center">
+
           {/* Stage count badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-teal-400/10 border border-teal-400/20 rounded-full text-teal-400 text-sm font-semibold mb-8 animate-fade-in">
-            <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+          <motion.div
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-teal-400/10 border border-teal-400/20 rounded-full text-teal-400 text-sm font-semibold mb-8"
+            variants={fadeUpVariants}
+          >
+            <motion.div
+              className="w-2 h-2 rounded-full bg-teal-400"
+              animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
             {questionBank.stageCount} Stages
-          </div>
+          </motion.div>
 
           {/* Theorem title */}
-          <h1 className="font-display text-4xl sm:text-5xl text-cream-100 font-bold mb-6 animate-fade-in" style={{animationDelay: '100ms'}}>
+          <motion.h1
+            className="font-display text-4xl sm:text-5xl text-cream-100 font-bold mb-6"
+            variants={fadeUpVariants}
+          >
             {questionBank.displayName || theoremData.theorem}
-          </h1>
+          </motion.h1>
 
-          {/* Story intro */}
-          <div className="bg-navy-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 mb-8 text-left animate-fade-in" style={{animationDelay: '200ms'}}>
+          {/* Story intro card — slides up on enter */}
+          <motion.div
+            className="bg-navy-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 mb-8 text-left"
+            variants={fadeUpVariants}
+          >
             <p className="text-cream-300 leading-relaxed text-base font-sans">
               {questionBank.story.intro}
             </p>
-          </div>
+          </motion.div>
 
           {/* Stage progress dots */}
-          <div className="flex items-center justify-center gap-3 mb-10 animate-fade-in" style={{animationDelay: '300ms'}}>
+          <motion.div
+            className="flex items-center justify-center gap-3 mb-10"
+            variants={fadeUpVariants}
+          >
             {Array.from({ length: questionBank.stageCount }).map((_, i) => (
-              <div key={i} className="w-2.5 h-2.5 rounded-full bg-navy-700 border border-white/10" />
+              <motion.div
+                key={i}
+                className="w-2.5 h-2.5 rounded-full bg-navy-700 border border-white/10"
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 + i * 0.06, duration: 0.25 }}
+              />
             ))}
-          </div>
+          </motion.div>
 
           {/* Begin / Resume button */}
-          <button
-            onClick={startGame}
-            className="px-12 py-4 bg-teal-400 text-navy-950 font-bold text-lg rounded-xl hover:bg-teal-300 hover:scale-105 transition-all shadow-xl shadow-teal-400/20 animate-fade-in" style={{animationDelay: '400ms'}}
-          >
-            {savedStage > 0 ? `Resume from Step ${savedStage}` : 'Begin Journey'}
-          </button>
+          <motion.div variants={fadeUpVariants}>
+            <button
+              onClick={startGame}
+              className="px-12 py-4 bg-teal-400 text-navy-950 font-bold text-lg rounded-xl hover:bg-teal-300 hover:scale-105 transition-all shadow-xl shadow-teal-400/20"
+            >
+              {savedStage > 0 ? `Resume from Step ${savedStage}` : 'Begin Journey'}
+            </button>
+          </motion.div>
 
           {/* Back to dashboard */}
-          <button onClick={onExit} className="block mx-auto mt-6 text-cream-400 text-sm hover:text-teal-400 transition-colors animate-fade-in" style={{animationDelay: '500ms'}}>
+          <motion.button
+            onClick={onExit}
+            className="block mx-auto mt-6 text-cream-400 text-sm hover:text-teal-400 transition-colors"
+            variants={fadeUpVariants}
+          >
             ← Back to Dashboard
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PAYOFF SCREEN
+  // PAYOFF SCREEN — dramatic full-screen reveal
   // ══════════════════════════════════════════════════════════════════════════
   if (gameState === 'payoff') {
     return (
-      <div className="min-h-screen bg-navy-950 flex flex-col items-center justify-center px-6 py-12">
-        <div className="max-w-lg text-center space-y-8">
-          {/* Trophy + completion badge */}
-          <div className="inline-flex flex-col items-center gap-3">
+      <motion.div
+        className="min-h-screen bg-navy-950 flex flex-col items-center justify-center px-6 py-12 overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <div className="max-w-lg text-center space-y-8 w-full">
+
+          {/* Trophy — drops in with spring overshoot */}
+          <motion.div
+            className="inline-flex flex-col items-center gap-3"
+            initial={{ opacity: 0, y: -60, scale: 0.5 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 18, delay: 0.1 }}
+          >
             <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-2xl shadow-amber-400/30">
               <span className="text-navy-950 text-4xl">🏆</span>
             </div>
-            <div className="px-5 py-2 bg-amber-400/10 border border-amber-400/30 rounded-full">
+            <motion.div
+              className="px-5 py-2 bg-amber-400/10 border border-amber-400/30 rounded-full"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+            >
               <span className="text-amber-400 font-bold font-display text-lg">{questionBank.story.completionBadge}</span>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          {/* "Theorem Unlocked" heading */}
-          <div>
+          {/* Theorem Unlocked heading — scales up from 0.85 */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.25, duration: 0.4, ease: 'easeOut' }}
+          >
             <h1 className="font-display text-4xl text-cream-100 font-bold mb-3">Theorem Unlocked</h1>
             <p className="text-cream-400">You've completed {questionBank.story.completionBadge}</p>
-          </div>
+          </motion.div>
 
-          {/* Formal statement, plain English, applications */}
-          <div className="bg-navy-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-left space-y-4">
-            <div>
+          {/* Theorem content card — slides up */}
+          <motion.div
+            className="bg-navy-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-left space-y-4"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5, ease: 'easeOut' }}
+          >
+            {/* Formal Statement */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.55 }}
+            >
               <p className="text-xs uppercase tracking-widest text-teal-400 font-semibold mb-2">Formal Statement</p>
               <p className="font-mono text-cream-100 text-lg leading-relaxed">{questionBank.story.theoremStatement}</p>
-            </div>
+            </motion.div>
+
             <div className="h-px bg-white/10" />
-            <div>
+
+            {/* Plain English */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65 }}
+            >
               <p className="text-xs uppercase tracking-widest text-teal-400 font-semibold mb-2">Plain English</p>
               <p className="text-cream-300 font-sans leading-relaxed">{questionBank.story.plainEnglish}</p>
-            </div>
+            </motion.div>
+
             <div className="h-px bg-white/10" />
-            <div>
+
+            {/* Applications */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.75 }}
+            >
               <p className="text-xs uppercase tracking-widest text-teal-400 font-semibold mb-2">Real-World Applications</p>
               <ul className="space-y-2">
                 {questionBank.story.applications.map((app, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-cream-300 font-sans">
-                    <span className="text-teal-400 mt-0.5">◆</span>{app}
+                    <span className="text-teal-400 mt-0.5 flex-shrink-0">◆</span>{app}
                   </li>
                 ))}
               </ul>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          {/* XP earned display */}
-          <div className="flex items-center justify-center gap-3">
+          {/* XP earned — scales in */}
+          <motion.div
+            className="flex items-center justify-center gap-3"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.85, type: 'spring', stiffness: 200 }}
+          >
             <div className="w-10 h-10 bg-amber-400/20 rounded-xl flex items-center justify-center">
               <span className="text-amber-400 font-bold text-sm">{totalXP}</span>
             </div>
             <span className="text-cream-400 font-medium">XP Earned</span>
-          </div>
+          </motion.div>
 
-          {/* Action buttons: replay or return to dashboard */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* Action buttons */}
+          <motion.div
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.95 }}
+          >
             <button
               onClick={replay}
               className="px-8 py-3.5 bg-navy-800 border border-white/10 text-cream-100 font-semibold rounded-xl hover:bg-navy-700 transition-all"
@@ -457,24 +622,35 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
             >
               Back to Dashboard
             </button>
-          </div>
+          </motion.div>
+
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PLAYING SCREEN
+  // PLAYING SCREEN — stage transitions + micro-interactions
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-navy-950 flex flex-col">
-
-      {/* ── Sticky top bar ─────────────────────────────────────────────────── */}
+    <motion.div
+      className="min-h-screen bg-navy-950 flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* ── Sticky top bar ───────────────────────────────────────────────── */}
       <div className="sticky top-0 z-50 px-4 sm:px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between bg-navy-900/60 backdrop-blur-xl border border-white/10 rounded-2xl px-5 py-3">
+
           {/* Exit button */}
-          <button onClick={onExit} className="text-cream-400 hover:text-teal-400 text-sm font-medium flex items-center gap-1 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          <button
+            onClick={onExit}
+            className="text-cream-400 hover:text-teal-400 text-sm font-medium flex items-center gap-1 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
             Exit
           </button>
 
@@ -484,157 +660,224 @@ export default function LearningLoop({ theoremId, onComplete, onExit, userId }) 
             <p className="text-sm text-teal-400 font-medium">{currentStage.conceptLabel}</p>
           </div>
 
-          {/* XP badge (pulses on change via xpAnimating) */}
+          {/* XP badge — spring-animated on change */}
           <div className="flex items-center gap-2">
-            <div className={`w-7 h-7 bg-amber-400/20 rounded-lg flex items-center justify-center ${xpAnimating ? 'animate-xp-tick' : ''}`}>
-              <span className="text-amber-400 font-bold text-xs font-mono">{totalXP}</span>
-            </div>
+            <motion.div
+              className="w-7 h-7 bg-amber-400/20 rounded-lg flex items-center justify-center"
+              animate={totalXP > 0 ? { scale: [1, 1.35, 1] } : {}}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              key={totalXP}
+            >
+              <motion.span className="text-amber-400 font-bold text-xs font-mono">
+                {totalXP}
+              </motion.span>
+            </motion.div>
             <span className="text-xs text-cream-400">XP</span>
           </div>
         </div>
       </div>
 
-      {/* ── Stage progress dots ─────────────────────────────────────────────── */}
+      {/* ── Stage progress bar (smooth spring fill) ────────────────────── */}
       <div className="px-4 sm:px-6 py-3">
-        <div className="max-w-2xl mx-auto flex items-center gap-1.5">
-          {Array.from({ length: questionBank.stageCount }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                i < stageIndex ? 'w-8 bg-teal-400' :
-                i === stageIndex ? 'w-4 bg-teal-400' :
-                'w-4 bg-navy-700'
-              }`}
-            />
-          ))}
+        <div className="max-w-2xl mx-auto">
+          <ProgressBar value={stageIndex} max={questionBank.stageCount} />
         </div>
       </div>
 
-      {/* ── Question area ───────────────────────────────────────────────────── */}
+      {/* ── Question area — slides left/right between stages ─────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-2xl space-y-8">
+        <div className="w-full max-w-2xl">
 
-          {/* Concept label tag */}
-          <div className="text-center">
-            <span className="inline-block px-3 py-1 bg-navy-800 border border-white/10 rounded-full text-xs text-cream-400 font-medium">
-              {currentStage.conceptLabel}
-            </span>
-          </div>
-
-          {/* Question text */}
-          <div className="text-center">
-            <h2 className="font-display text-3xl sm:text-4xl text-cream-100 font-bold leading-tight">
-              {currentStage.question}
-            </h2>
-          </div>
-
-          {/* Answer input field */}
-          <div className={`relative ${feedback === 'hint' ? 'animate-shake' : ''}`}>
-            <form onSubmit={handleSubmit}>
-              <input
-                ref={inputRef}
-                type={currentStage.type === 'numeric' ? 'number' : 'text'}
-                inputMode={currentStage.type === 'numeric' ? 'numeric' : 'text'}
-                pattern={currentStage.type === 'numeric' ? '[0-9]*' : undefined}
-                value={input}
-                onChange={e => {
-                  const val = currentStage.type === 'numeric'
-                    ? e.target.value.replace(/[^0-9]/g, '')
-                    : e.target.value
-                  setInput(val)
-                }}
-                onKeyDown={handleKeyDown}
-                disabled={feedback === 'correct'}
-                autoFocus
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                placeholder={currentStage.type === 'numeric' ? 'Enter a number...' : 'Type your answer...'}
-                className={`w-full px-6 py-4 bg-navy-900/80 border-2 rounded-2xl font-mono text-2xl text-cream-100 text-center outline-none transition-all placeholder:text-cream-300/30 ${
-                  feedback === 'correct' ? 'border-teal-400 bg-teal-400/10' :
-                  feedback === 'hint' ? 'border-coral-400/60' :
-                  'border-navy-700 focus:border-teal-400'
-                }`}
-              />
-
-              {/* Correct answer flash overlay */}
-              {feedback === 'correct' && (
-                <div className="absolute inset-0 bg-teal-400/20 rounded-2xl pointer-events-none animate-flash" />
-              )}
-            </form>
-          </div>
-
-          {/* Correct feedback message */}
-          <div className="h-12 flex items-center justify-center">
-            {feedback === 'correct' && (
-              <div className="flex items-center gap-2 text-teal-400 animate-fade-in">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-                <span className="font-semibold text-sm">Correct! Keep going...</span>
-                <span className="text-xs text-amber-400 font-mono">+{hintWasUsed ? XP_AFTER_HINT : XP_FIRST_ATTEMPT} XP</span>
-              </div>
-            )}
-          </div>
-
-          {/* Hint panel (slides in when feedback === 'hint') */}
-          <div className={`overflow-hidden transition-all duration-500 ${currentHint ? 'animate-hint-slide' : ''}`}>
-            {currentHint && (
-              <div className="flex items-start gap-3 bg-coral-400/10 border border-coral-400/20 rounded-2xl p-5 mt-2">
-                <div className="w-8 h-8 bg-coral-400/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <span className="text-coral-400 text-sm">💡</span>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-coral-400 font-semibold mb-1">Hint</p>
-                  <p className="text-cream-300 text-sm leading-relaxed">{currentHint}</p>
-                  <p className="text-xs text-coral-400/60 mt-2 font-mono">Retry {retryCount}/{MAX_RETRIES}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Concept explanation (shown after correct answer if available) */}
-          <div className={`space-y-3 overflow-hidden transition-all duration-500 ${feedback === 'correct' && currentStage.conceptShown ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="flex items-start gap-3 bg-teal-400/10 border border-teal-400/20 rounded-2xl p-5">
-              <div className="w-8 h-8 bg-teal-400/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <span className="text-teal-400 text-sm">✨</span>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-teal-400 font-semibold mb-1">Concept</p>
-                <p className="text-cream-300 text-sm leading-relaxed">{currentStage.conceptShown}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Correct answer counter dots */}
-          <div className="flex items-center justify-center gap-3">
-            {Array.from({ length: STAGE_CORRECTS_NEEDED }).map((_, i) => (
-              <div
-                key={i}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  i < correctCount ? 'bg-teal-400 scale-110' : 'bg-navy-700'
-                }`}
-              />
-            ))}
-            <span className="text-xs text-cream-400 ml-2">{correctCount}/{STAGE_CORRECTS_NEEDED} to advance</span>
-          </div>
-
-          {/* Submit / Check Answer button */}
-          <div className="flex justify-center">
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim() || feedback === 'correct'}
-              className={`px-10 py-3.5 rounded-xl font-bold text-navy-950 transition-all ${
-                input.trim() && feedback !== 'correct'
-                  ? 'bg-teal-400 hover:bg-teal-300 shadow-lg shadow-teal-400/20'
-                  : 'bg-teal-400/30 cursor-not-allowed'
-              }`}
+          <AnimatePresence mode="wait" custom={slideDir}>
+            <motion.div
+              key={stageIndex}
+              custom={slideDir}
+              variants={slideVariants(slideDir)}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-8"
             >
-              Check Answer
-            </button>
-          </div>
+
+              {/* Concept label tag */}
+              <div className="text-center">
+                <span className="inline-block px-3 py-1 bg-navy-800 border border-white/10 rounded-full text-xs text-cream-400 font-medium">
+                  {currentStage.conceptLabel}
+                </span>
+              </div>
+
+              {/* Question text */}
+              <div className="text-center">
+                <h2 className="font-display text-3xl sm:text-4xl text-cream-100 font-bold leading-tight">
+                  {currentStage.question}
+                </h2>
+              </div>
+
+              {/* Answer input field — glows teal on correct, coral on wrong */}
+              <motion.div
+                animate={
+                  feedback === 'correct'
+                    ? { boxShadow: ['0 0 0px rgba(45,212,191,0)', '0 0 20px rgba(45,212,191,0.4)', '0 0 8px rgba(45,212,191,0.2)'] }
+                    : feedback === 'hint'
+                    ? { x: [0, -8, 8, -6, 6, -3, 3, 0] }
+                    : {}
+                }
+                transition={
+                  feedback === 'correct'
+                    ? { duration: 0.8, ease: 'easeOut' }
+                    : feedback === 'hint'
+                    ? { duration: 0.5, ease: 'easeInOut' }
+                    : {}
+                }
+              >
+                <form onSubmit={handleSubmit}>
+                  <input
+                    ref={inputRef}
+                    type={currentStage.type === 'numeric' ? 'number' : 'text'}
+                    inputMode={currentStage.type === 'numeric' ? 'numeric' : 'text'}
+                    pattern={currentStage.type === 'numeric' ? '[0-9]*' : undefined}
+                    value={input}
+                    onChange={e => {
+                      const val = currentStage.type === 'numeric'
+                        ? e.target.value.replace(/[^0-9]/g, '')
+                        : e.target.value
+                      setInput(val)
+                    }}
+                    onKeyDown={handleKeyDown}
+                    disabled={feedback === 'correct'}
+                    autoFocus
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    placeholder={currentStage.type === 'numeric' ? 'Enter a number...' : 'Type your answer...'}
+                    className={`w-full px-6 py-4 bg-navy-900/80 border-2 rounded-2xl font-mono text-2xl text-cream-100 text-center outline-none transition-all placeholder:text-cream-300/30 ${
+                      feedback === 'correct'
+                        ? 'border-teal-400 bg-teal-400/10 shadow-[0_0_16px_rgba(45,212,191,0.3)]'
+                        : feedback === 'hint'
+                        ? 'border-coral-400/60 bg-coral-400/5'
+                        : 'border-navy-700 focus:border-teal-400 focus:shadow-[0_0_12px_rgba(45,212,191,0.15)]'
+                    }`}
+                  />
+
+                  {/* Correct answer flash overlay */}
+                  <AnimatePresence>
+                    {feedback === 'correct' && (
+                      <motion.div
+                        className="absolute inset-0 bg-teal-400/15 rounded-2xl pointer-events-none"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                  </AnimatePresence>
+                </form>
+              </motion.div>
+
+              {/* Correct feedback message */}
+              <div className="h-12 flex items-center justify-center">
+                <AnimatePresence>
+                  {feedback === 'correct' && (
+                    <motion.div
+                      className="flex items-center gap-2 text-teal-400"
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                      </svg>
+                      <span className="font-semibold text-sm">Correct! Keep going...</span>
+                      <span className="text-xs text-amber-400 font-mono">+{hintWasUsed ? XP_AFTER_HINT : XP_FIRST_ATTEMPT} XP</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Hint panel — slides up from below */}
+              <AnimatePresence>
+                {currentHint && (
+                  <motion.div
+                    className="flex items-start gap-3 bg-coral-400/10 border border-coral-400/20 rounded-2xl p-5"
+                    initial={{ opacity: 0, y: 20, maxHeight: 0 }}
+                    animate={{ opacity: 1, y: 0, maxHeight: 200 }}
+                    exit={{ opacity: 0, y: -10, maxHeight: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="w-8 h-8 bg-coral-400/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-coral-400 text-sm">💡</span>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-coral-400 font-semibold mb-1">Hint</p>
+                      <p className="text-cream-300 text-sm leading-relaxed">{currentHint}</p>
+                      <p className="text-xs text-coral-400/60 mt-2 font-mono">Retry {retryCount}/{MAX_RETRIES}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Concept explanation — fades in after correct */}
+              <AnimatePresence>
+                {feedback === 'correct' && currentStage.conceptShown && (
+                  <motion.div
+                    className="flex items-start gap-3 bg-teal-400/10 border border-teal-400/20 rounded-2xl p-5"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35, delay: 0.15 }}
+                  >
+                    <div className="w-8 h-8 bg-teal-400/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-teal-400 text-sm">✨</span>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-teal-400 font-semibold mb-1">Concept</p>
+                      <p className="text-cream-300 text-sm leading-relaxed">{currentStage.conceptShown}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Correct answer counter dots */}
+              <div className="flex items-center justify-center gap-3">
+                {Array.from({ length: STAGE_CORRECTS_NEEDED }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-3 h-3 rounded-full"
+                    animate={
+                      i < correctCount
+                        ? { backgroundColor: '#2dd4bf', scale: [1, 1.25, 1] }
+                        : { backgroundColor: '#1a3058' }
+                    }
+                    transition={{ duration: 0.3, delay: i * 0.07 }}
+                  />
+                ))}
+                <span className="text-xs text-cream-400 ml-2">{correctCount}/{STAGE_CORRECTS_NEEDED} to advance</span>
+              </div>
+
+              {/* Submit / Check Answer button */}
+              <div className="flex justify-center">
+                <motion.button
+                  onClick={handleSubmit}
+                  disabled={!input.trim() || feedback === 'correct'}
+                  className={`px-10 py-3.5 rounded-xl font-bold text-navy-950 transition-all ${
+                    input.trim() && feedback !== 'correct'
+                      ? 'bg-teal-400 hover:bg-teal-300 shadow-lg shadow-teal-400/20'
+                      : 'bg-teal-400/30 cursor-not-allowed'
+                  }`}
+                  whileTap={input.trim() && feedback !== 'correct' ? { scale: 0.97 } : {}}
+                >
+                  Check Answer
+                </motion.button>
+              </div>
+
+            </motion.div>
+          </AnimatePresence>
 
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

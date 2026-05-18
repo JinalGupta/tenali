@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import CaseStudyCard from '../../components/dashboard/CaseStudyCard'
 import XPBar from '../../components/dashboard/XPBar'
 import theorems from '../../data/theorems.json'
@@ -217,23 +218,38 @@ export default function Dashboard({ session, onSignOut }) {
           </div>
         </div>
 
-        {/* Responsive grid of theorem cards.
+        {/* Responsive grid of theorem cards with staggered entrance animation.
             Layout: 1 col (mobile) → 2 col (small) → 3 col (large) → 4 col (xl) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.07 } },
+          }}
+        >
           {theoremsWithIcons.map(theorem => {
             // Look up this theorem's progress from the map (empty obj if never started).
             const prog = progressMap[theorem.id] || {}
             return (
-              <CaseStudyCard
+              <motion.div
                 key={theorem.id}
-                theorem={theorem}
-                illustration={theoremIllustrations[theorem.id] || null}
-                progress={prog}
-                onClick={() => setActiveTheorem(theorem.id)}
-              />
+                variants={{
+                  hidden: { opacity: 0, y: 16 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+                }}
+              >
+                <CaseStudyCard
+                  theorem={theorem}
+                  illustration={theoremIllustrations[theorem.id] || null}
+                  progress={prog}
+                  onClick={() => setActiveTheorem(theorem.id)}
+                />
+              </motion.div>
             )
           })}
-        </div>
+        </motion.div>
       </main>
     </div>
   )

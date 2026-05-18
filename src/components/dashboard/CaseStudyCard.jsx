@@ -2,7 +2,10 @@
 // CaseStudyCard.jsx — Individual theorem card for the dashboard
 // Displays theorem name, illustration, progress status, XP earned,
 // and a hover "Start/Continue" CTA. Clicking opens the LearningLoop.
+// Hover state includes a subtle elevation (scale + shadow) via framer-motion.
 // ============================================================
+
+import { motion } from 'framer-motion'
 
 export default function CaseStudyCard({ theorem, onClick, progress = {}, illustration = null }) {
   // Unpack progress props with sensible defaults for new/not-started cards
@@ -34,9 +37,16 @@ export default function CaseStudyCard({ theorem, onClick, progress = {}, illustr
   const statusCfg = STATUS_CONFIG[status] || STATUS_CONFIG['not_started'];
 
   return (
-    <article
+    <motion.article
       onClick={onClick}
-      className="group relative bg-navy-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 cursor-pointer hover:border-teal-400/40 hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-teal-400/5"
+      className="group relative bg-navy-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 cursor-pointer"
+      whileHover={{
+        scale: 1.03,
+        boxShadow: '0 20px 60px rgba(45, 212, 191, 0.08), 0 8px 24px rgba(0,0,0,0.4)',
+        borderColor: 'rgba(45, 212, 191, 0.35)',
+      }}
+      transition={{ type: 'spring', stiffness: 250, damping: 25 }}
+      layout
     >
       {/* Illustration: custom SVG if provided, else shows theorem's first letter as placeholder */}
       <div className="w-full aspect-square mb-5 rounded-2xl overflow-hidden bg-navy-950 border border-white/5 flex items-center justify-center p-4 group-hover:border-teal-400/20 transition-colors">
@@ -83,6 +93,6 @@ export default function CaseStudyCard({ theorem, onClick, progress = {}, illustr
           </svg>
         </div>
       </div>
-    </article>
+    </motion.article>
   )
 }
