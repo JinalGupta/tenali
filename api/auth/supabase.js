@@ -1,3 +1,11 @@
+/**
+ * supabase.js — Shared Supabase client for auth API routes
+ *
+ * Provides a pre-configured Supabase client to all auth API handlers.
+ * Uses the service-role key (SUPABASE_KEY env var) which bypasses RLS —
+ * this is safe ONLY here in a serverless function, not in the browser.
+ */
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://gwmciomzyaujlpsquvbz.supabase.co';

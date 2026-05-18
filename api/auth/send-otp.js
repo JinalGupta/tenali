@@ -1,24 +1,40 @@
-import { Resend } from 'resend';
+/**
+ * send-otp.js — Vercel serverless function: send OTP via Resend
+ *
+ * POST /api/auth/send-otp
+ * Body: { email: string }
+ *
+ * Generates a 6-digit numeric OTP, stores it in otpStore with a 5-minute
+ * expiry, and emails it to the user via Resend's API.
+ *
+ * In production: replace the in-memory otpStore with a Redis or DB-backed
+ * store so OTPs survive cold-start resets.
+ */
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_b8ERV4vB_PckH1dFUdXwovxJuqztCVF18');
+import { Resend } from 'resend'
 
-const otpStore = {};
+const resend = new Resend(process.env.RESEND_API_KEY || 're_b8ERV4vB_PckH1dFUdXwovxJuqztCVF18')
 
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+// In-memory OTP store — resets on cold start
+const otpStore = {}
+
+/** Generate a random 6-digit OTP (e.g. "482917"). */
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ message: 'Method not allowed' })
   }
 
-  const { email } = req.body;
+  const { email } = req.body
   if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+    return res.status(400).json({ message: 'Email is required' })
   }
 
-  const otp = generateOTP();
-  const expiry = Date.now() + (5 * 60 * 1000);
-  otpStore[email] = { otp, expiry };
+  // Store OTP with 5-minute window
+  const otp = generateOTP()
+  const expiry = Date.now() + 5 * 60 * 1000
+  otpStore[email] = { otp, expiry }
 
   try {
     await resend.emails.send({
@@ -31,10 +47,10 @@ export default async function handler(req, res) {
         <div style="background:#f0f4ff;padding:20px;text-align:center;font-size:32px;font-weight:bold;letter-spacing:8px;color:#2dd4bf;margin:20px 0;border-radius:8px;">${otp}</div>
         <p style="font-size:12px;color:#888;">This code expires in 5 minutes.</p>
       </div>`,
-    });
-    return res.json({ message: 'OTP sent successfully' });
+    })
+    return res.json({ message: 'OTP sent successfully' })
   } catch (error) {
-    console.error('Error sending email:', error);
-    return res.status(500).json({ message: 'Failed to send OTP' });
+    console.error('Error sending email:', error)
+    return res.status(500).json({ message: 'Failed to send OTP' })
   }
 }
