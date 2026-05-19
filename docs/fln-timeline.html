@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FLN — A Global Timeline of Foundational Literacy and Numeracy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0e1a;
+      --bg-secondary: #111827;
+      --bg-card: #1a2234;
+      --bg-card-hover: #1f2a40;
+      --border: #2a3550;
+      --border-accent: #c9943a;
+      --text-primary: #f0ead6;
+      --text-secondary: #a8a28c;
+      --text-muted: #6b7280;
+      --accent-amber: #c9943a;
+      --accent-amber-dim: #a07830;
+      --accent-teal: #38b2ac;
+      --accent-teal-dim: #2d8a85;
+      --accent-india: #e07b39;
+      --accent-global: #4a90d9;
+      --accent-research: #9b6dd3;
+      --accent-report: #4caf50;
+      --accent-newspaper: #e57373;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0b0e1a 0%, #1a2234 50%, #111827 100%);
+      padding: 80px 24px 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(200,148,58,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--accent-amber);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 6vw, 64px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-amber) 50%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 680px;
+      margin: 0 auto 40px;
+    }
+
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.india { background: var(--accent-india); }
+    .legend-dot.global { background: var(--accent-global); }
+    .legend-dot.research { background: var(--accent-research); }
+    .legend-dot.report { background: var(--accent-report); }
+    .legend-dot.newspaper { background: var(--accent-newspaper); }
+
+    /* Era blocks */
+    .era-block {
+      margin: 0 auto;
+      max-width: 860px;
+      padding: 0 24px;
+    }
+
+    .era-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 60px 0 30px;
+    }
+
+    .era-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent-amber);
+      white-space: nowrap;
+    }
+
+    .era-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent-amber-dim), transparent);
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--border) 0%, var(--accent-amber-dim) 50%, var(--border) 100%);
+    }
+
+    .entry {
+      position: relative;
+      margin-bottom: 32px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .entry:nth-child(1) { animation-delay: 0.05s; }
+    .entry:nth-child(2) { animation-delay: 0.10s; }
+    .entry:nth-child(3) { animation-delay: 0.15s; }
+    .entry:nth-child(4) { animation-delay: 0.20s; }
+    .entry:nth-child(5) { animation-delay: 0.25s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .entry::before {
+      content: '';
+      position: absolute;
+      left: -36px;
+      top: 8px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 3px solid var(--bg-primary);
+      background: var(--entry-color, var(--accent-amber));
+      box-shadow: 0 0 0 3px var(--entry-color, var(--accent-amber));
+    }
+
+    .entry.india::before { background: var(--accent-india); box-shadow: 0 0 0 3px var(--accent-india); --entry-color: var(--accent-india); }
+    .entry.global::before { background: var(--accent-global); box-shadow: 0 0 0 3px var(--accent-global); --entry-color: var(--accent-global); }
+    .entry.research::before { background: var(--accent-research); box-shadow: 0 0 0 3px var(--accent-research); --entry-color: var(--accent-research); }
+    .entry.report::before { background: var(--accent-report); box-shadow: 0 0 0 3px var(--accent-report); --entry-color: var(--accent-report); }
+    .entry.newspaper::before { background: var(--accent-newspaper); box-shadow: 0 0 0 3px var(--accent-newspaper); --entry-color: var(--accent-newspaper); }
+
+    .entry-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .entry-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-amber-dim);
+    }
+
+    .entry-year {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--entry-color, var(--accent-amber));
+      margin-bottom: 8px;
+    }
+
+    .entry-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .entry-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .entry-desc {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .entry-ref {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 12px;
+      padding: 4px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: border-color 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+
+    .entry-ref:hover {
+      border-color: var(--accent-amber-dim);
+      color: var(--accent-amber);
+    }
+
+    .entry-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(200,148,58,0.1);
+      color: var(--accent-amber-dim);
+      border: 1px solid rgba(200,148,58,0.2);
+    }
+
+    .tag.india { background: rgba(224,123,57,0.1); color: var(--accent-india); border-color: rgba(224,123,57,0.2); }
+    .tag.global { background: rgba(74,144,217,0.1); color: var(--accent-global); border-color: rgba(74,144,217,0.2); }
+    .tag.research { background: rgba(155,109,211,0.1); color: var(--accent-research); border-color: rgba(155,109,211,0.2); }
+    .tag.report { background: rgba(76,175,80,0.1); color: var(--accent-report); border-color: rgba(76,175,80,0.2); }
+
+    /* Footer */
+    .references-section {
+      max-width: 860px;
+      margin: 80px auto 0;
+      padding: 0 24px;
+    }
+
+    .references-section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      color: var(--text-primary);
+      text-align: center;
+    }
+
+    .ref-group {
+      margin-bottom: 40px;
+    }
+
+    .ref-group-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent-amber);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ref-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.2s;
+    }
+
+    .ref-item:hover { border-color: var(--accent-amber-dim); }
+
+    .ref-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent-amber);
+      font-weight: 500;
+      min-width: 24px;
+    }
+
+    .ref-content { flex: 1; }
+
+    .ref-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .ref-link {
+      font-size: 11px;
+      color: var(--accent-teal);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      word-break: break-all;
+      transition: color 0.2s;
+    }
+
+    .ref-link:hover { color: var(--accent-teal-dim); }
+
+    .back-to-top {
+      display: block;
+      text-align: center;
+      margin: 60px auto 40px;
+      padding: 12px 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      width: fit-content;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .back-to-top:hover {
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+    }
+
+    .scroll-sentinel { height: 1px; }
+
+    @media (max-width: 600px) {
+      .hero { padding: 60px 20px 40px; }
+      .hero h1 { font-size: 28px; }
+      .legend { gap: 12px; }
+      .timeline { padding-left: 30px; }
+      .entry-card { padding: 16px 18px; }
+      .entry::before { left: -26px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-eyebrow">Tenali Research Series</div>
+  <h1>FLN — A Global Timeline</h1>
+  <p class="hero-subtitle">A chronological record of Foundational Literacy and Numeracy as a field — from earliest origins through 2025. Covering Indian policy, global frameworks, landmark research, and major reports.</p>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot india"></span> India</div>
+    <div class="legend-item"><span class="legend-dot global"></span> Global</div>
+    <div class="legend-item"><span class="legend-dot research"></span> Research</div>
+    <div class="legend-item"><span class="legend-dot report"></span> Report</div>
+    <div class="legend-item"><span class="legend-dot newspaper"></span> Media</div>
+  </div>
+</div>
+
+<!-- Era 1: Origins -->
+<div class="era-block">
+  <div class="era-header">
+    <span class="era-title">The Idea Takes Shape &nbsp;·&nbsp; 1950s–1980s</span>
+    <div class="era-line"></div>
+  </div>
+
+  <div class="timeline">
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">1955</div>
+        <div class="entry-title">UNESCO publishes "Terminology of Adult Education"</div>
+        <div class="entry-meta">UNESCO · France</div>
+        <div class="entry-desc">One of the earliest documented uses of "functional literacy" and numeracy as a combined concept in international education discourse. UNESCO begins standardizing terminology that would later evolve into FLN.</div>
+        <div class="entry-ref" onclick="window.open('https://unesdoc.unesco.org/ark:/48223/pf0000125156', '_blank')">📄 UNESCO Archive</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">1965</div>
+        <div class="entry-title">Paulo Freire publishes "Pedagogy of the Oppressed"</div>
+        <div class="entry-meta">Paulo Freire · Brazil</div>
+        <div class="entry-desc">Freire's critical pedagogy establishes literacy not as a skill-transfer exercise but as a pathway to consciousness and agency. The "problem-posing" method for literacy becomes foundational to global adult education. While not using the term FLN, this work shapes how numeracy is understood as liberation rather than mere calculation.</div>
+        <div class="entry-ref" onclick="window.open('https://en.wikipedia.org/wiki/Pedagogy_of_the_Oppressed', '_blank')">📄 Wikipedia</div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">1975</div>
+        <div class="entry-title">UNESCO establishes "Literacy" as a development pillar</div>
+        <div class="entry-meta">UNESCO · World Congress on Literacy</div>
+        <div class="entry-desc">The UNESCO World Congress on Literacy (Persepolis, 1975) sets international targets for literacy, framing it alongside health and economic development. "Numeracy" begins appearing as a parallel track to literacy in UNESCO documents.</div>
+        <div class="entry-ref" onclick="window.open('https://unesdoc.unesco.org/ark:/48223/pf0000125156', '_blank')">📄 UNESCO Documentation</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">1982</div>
+        <div class="entry-title">UNESCO uses "Functional Literacy and Numeracy" explicitly</div>
+        <div class="entry-meta">UNESCO · Technical Conference on Adult Education</div>
+        <div class="entry-desc">UNESCO's Technical Working Group on Adult Education begins using "Functional Literacy and Numeracy" as a combined term — one of the earliest explicit uses in international institutional language. The term captures the idea that literacy and numeracy are not binary (literate/illiterate) but exist on a spectrum tied to functional capacity.</div>
+        <div class="entry-ref" onclick="window.open('https://unesco.org', '_blank')">🌐 UNESCO</div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">1987</div>
+        <div class="entry-title">Pratham founded in Mumbai</div>
+        <div class="entry-meta">Pratham Education Foundation · India</div>
+        <div class="entry-desc">Pratham is founded with the mission "Every Child In School and Learning Well." It would become the driving force behind ASER — the most influential FLN measurement initiative in the developing world.</div>
+        <div class="entry-ref" onclick="window.open('https://www.pratham.org/', '_blank')">🌐 pratham.org</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">1989</div>
+        <div class="entry-title">Cognitive load theory formalized</div>
+        <div class="entry-meta">John Sweller · University of New South Wales</div>
+        <div class="entry-desc">Sweller's cognitive load theory (CLT) is formally published, providing the scientific basis for why adaptive learning — scaffolding, regression, and worked examples — is more effective than challenging struggling learners with material above their ZPD. CLT becomes foundational to adaptive FLN platforms decades later.</div>
+        <div class="entry-ref" onclick="window.open('https://www.sciencedirect.com/science/article/pii/0362161288900296', '_blank')">📄 Cognitive Load Theory (1988)</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Era 2: Early Frameworks -->
+<div class="era-block">
+  <div class="era-header">
+    <span class="era-title">Measurement & Momentum &nbsp;·&nbsp; 1990s</span>
+    <div class="era-line"></div>
+  </div>
+
+  <div class="timeline">
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">1990</div>
+        <div class="entry-title">World Conference on Education for All (Jomtien)</div>
+        <div class="entry-meta">UNESCO · World Bank · UNDP · UNICEF · Jomtien, Thailand</div>
+        <div class="entry-desc">The Jomtien Declaration establishes "Education for All" as a global goal, explicitly recognizing literacy and numeracy as foundational to all further learning. This is the first time FLN-adjacent concepts are embedded in a global framework with measurable targets.</div>
+        <div class="entry-ref" onclick="window.open('https://unesco.org/education/education-for-all-the-jomtien-framework', '_blank')">📄 UNESCO Framework</div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">1994</div>
+        <div class="entry-title">Pratham launches first learning assessment in Mumbai</div>
+        <div class="entry-meta">Pratham · India</div>
+        <div class="entry-desc">Pratham conducts its first large-scale community-based learning assessment in Mumbai slums, establishing the methodology that would eventually become ASER (Annual Status of Education Report). The methodology focuses on measuring actual learning levels, not just enrollment.</div>
+        <div class="entry-ref" onclick="window.open('https://www.pratham.org/', '_blank')">🌐 Pratham</div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">1995</div>
+        <div class="entry-title">OECD launches first PISA cycle</div>
+        <div class="entry-meta">OECD · International</div>
+        <div class="entry-desc">The Programme for International Student Assessment (PISA) launches its first cycle, measuring 15-year-old students' reading, mathematics, and science literacy across 32 countries. PISA becomes the global benchmark for comparing literacy and numeracy outcomes across education systems.</div>
+        <div class="entry-ref" onclick="window.open('https://www.oecd.org/pisa/', '_blank')">🌐 OECD PISA</div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">1996</div>
+        <div class="entry-title">India's District Primary Education Programme (DPEP) expands</div>
+        <div class="entry-meta">Government of India · Ministry of Education</div>
+        <div class="entry-desc">DPEP is expanded to cover 272 districts across India, focusing on improving primary education quality. While not using the FLN terminology, DPEP's focus on bridging learning gaps in early grades prefigures the FLN framework by a decade.</div>
+        <div class="entry-ref" onclick="window.open('https://www.education.gov.in/', '_blank')">🌐 Ministry of Education</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">1999</div>
+        <div class="entry-title">Pratham launches first ASER report</div>
+        <div class="entry-meta">Pratham · India</div>
+        <div class="entry-desc">The first Annual Status of Education Report (ASER) is released, covering rural India. For the first time, a citizen-led household survey measures actual reading and arithmetic levels of children aged 7-14 — not just school enrollment. ASER becomes the world's largest annual citizen-led learning assessment.</div>
+        <div class="entry-ref" onclick="window.open('https://asercentre.org/', '_blank')">🌐 ASER Centre</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2000</div>
+        <div class="entry-title">Dakar Framework for Action — Education for All</div>
+        <div class="entry-meta">UNESCO · World Education Forum · Dakar, Senegal</div>
+        <div class="entry-desc">The Dakar Framework builds on Jomtien, committing 180 countries to achieving Education for All by 2015. It explicitly prioritizes "access to, and completion of, quality primary education" — laying groundwork for FLN measurement frameworks to come.</div>
+        <div class="entry-ref" onclick="window.open('https://unesco.org/education/education-for-all-dakar-framework-for-action', '_blank')">📄 Dakar Framework</div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2001</div>
+        <div class="entry-title">USAID adopts "Foundational Learning" terminology</div>
+        <div class="entry-meta">USAID · United States</div>
+        <div class="entry-desc">USAID begins using "Foundational Learning" to describe early grade literacy and numeracy programs, popularizing the term in development sector discourse. The term is adopted across USAID's global education portfolio over the following decade.</div>
+        <div class="entry-ref" onclick="window.open('https://www.usaid.gov/education', '_blank')">🌐 USAID Education</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Era 3: ASER Era -->
+<div class="era-block">
+  <div class="era-header">
+    <span class="era-title">ASER Era &amp; The Learning Crisis &nbsp;·&nbsp; 2000s</span>
+    <div class="era-line"></div>
+  </div>
+
+  <div class="timeline">
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2005</div>
+        <div class="entry-title">ASER goes national — 300,000 households surveyed</div>
+        <div class="entry-meta">Pratham · India</div>
+        <div class="entry-desc">ASER expands to become a nationally representative annual survey, covering all 18 states of India. The 2005 report reveals that 40% of children in Class 5 cannot read a Class 2 text — shocking the policy establishment. This is the first time FLN data reaches national headlines in India.</div>
+        <div class="entry-ref" onclick="window.open('https://asercentre.org/wp-content/uploads/2022/12/ASER-2005.pdf', '_blank')">📄 ASER 2005</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2006</div>
+        <div class="entry-title">India introduces SSA (Sarva Shiksha Abhiyan)</div>
+        <div class="entry-meta">Government of India · Ministry of Education</div>
+        <div class="entry-desc">SSA is launched as India's flagship program for universalizing elementary education. While primarily focused on access and infrastructure, SSA includes a Learning Enhancement component that begins addressing the FLN gap at a national scale.</div>
+        <div class="entry-ref" onclick="window.open('https://www.education.gov.in/', '_blank')">🌐 Ministry of Education</div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2007</div>
+        <div class="entry-title">World Bank publishes "Learning for All" — first FLN policy directive</div>
+        <div class="entry-meta">World Bank · Washington D.C.</div>
+        <div class="entry-desc">The World Bank's "Learning for All" directive explicitly frames foundational literacy and numeracy as the cornerstone of all education investment. This marks the first time FLN is treated as a discrete policy priority by a major multilateral institution.</div>
+        <div class="entry-ref" onclick="window.open('https://www.worldbank.org/en/topic/education', '_blank')">🌐 World Bank Education</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2008</div>
+        <div class="entry-title">"Teaching at the Right Level" (TaRL) methodology developed</div>
+        <div class="entry-meta">Pratham · CRED, University of Nottingham · Mozambique &amp; India</div>
+        <div class="entry-desc">Pratham, in partnership with the Centre for Research on Economics of Education (CRED) at University of Nottingham, develops the Teaching at the Right Level (TaRL) methodology. TaRL groups students by learning level rather than age or grade — a direct response to ASER's finding that age-grade mismatch is endemic in Indian primary schools.</div>
+        <div class="entry-ref" onclick="window.open('https://www.pratham.org/resources/taRL', '_blank')">🌐 Pratham TaRL</div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2009</div>
+        <div class="entry-title">ASER reveals 56% of Class 5 students cannot read Class 2 text</div>
+        <div class="entry-meta">Pratham · India</div>
+        <div class="entry-desc">The 2009 ASER report amplifies the learning crisis: over half of Class 5 students in rural India cannot read at a Class 2 level. 47% cannot solve a two-digit subtraction problem. This finding generates sustained newspaper coverage and policy pressure for the first time.</div>
+        <div class="entry-ref" onclick="window.open('https://asercentre.org/wp-content/uploads/2022/12/ASER-2009.pdf', '_blank')">📄 ASER 2009</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2010</div>
+        <div class="entry-title">UNESCO's "Education for All" Global Monitoring Report focuses on literacy</div>
+        <div class="entry-meta">UNESCO · Global</div>
+        <div class="entry-desc">The EFA Global Monitoring Report devotes significant attention to the global literacy gap, noting that 775 million adults lack minimum literacy skills. The report frames FLN as both a development and equity issue, linking learning poverty to economic marginalization.</div>
+        <div class="entry-ref" onclick="window.open('https://unesco.org/education/education-for-all-global-monitoring-report', '_blank')">🌐 UNESCO GMR</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2011</div>
+        <div class="entry-title">Banerjee, Duflo, Glennerster &amp; Kothiyal — "Improving PCPS in Karnataka"</div>
+        <div class="entry-meta">Abhijit Banerjee, Esther Duflo · MIT / J-PAL · India</div>
+        <div class="entry-desc">Nobel laureates Banerjee and Duflo (with colleagues) publish a landmark RCT in Karnataka showing that targeted remedial education can dramatically improve learning outcomes for low-performing students. This provides rigorous evidence for adaptive regression-based approaches in FLN instruction. The paper is cited extensively in India's FLN policy discussions.</div>
+        <div class="entry-ref" onclick="window.open('https://economics.mit.edu/pub/bancherjee', '_blank')">📄 MIT Economics</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Era 4: Policy Convergence -->
+<div class="era-block">
+  <div class="era-header">
+    <span class="era-title">Policy Convergence &amp; Global Consensus &nbsp;·&nbsp; 2010s</span>
+    <div class="era-line"></div>
+  </div>
+
+  <div class="timeline">
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2012</div>
+        <div class="entry-title">PISA for Development (PISA-D) launched</div>
+        <div class="entry-meta">OECD · Low and middle-income countries</div>
+        <div class="entry-desc">OECD extends PISA to low and middle-income countries (PISA-D), making global FLN comparisons possible for developing nations for the first time. India participates in PISA 2009 and again in 2022 (in selected states).</div>
+        <div class="entry-ref" onclick="window.open('https://www.oecd.org/pisa/', '_blank')">🌐 OECD PISA</div>
+      </div>
+    </div>
+
+    <div class="entry newspaper">
+      <div class="entry-card">
+        <div class="entry-year">2013</div>
+        <div class="entry-title">"The learning crisis" — The Economist, World Bank, and major newspapers</div>
+        <div class="entry-meta">Global Media</div>
+        <div class="entry-desc">Major publications including The Economist, The Guardian, and the Hindustan Times run multi-part series on "the learning crisis" — documenting that millions of children in school are not learning. The term "learning poverty" gains mainstream traction, defined as the inability to read and understand a simple text by age 10.</div>
+        <div class="entry-ref" onclick="window.open('https://www.worldbank.org/en/topic/education/brief/ending-learning-poverty', '_blank')">🌐 World Bank: Ending Learning Poverty</div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2014</div>
+        <div class="entry-title">ASER Centre and Pratham publish 15 years of learning data</div>
+        <div class="entry-meta">Pratham · India</div>
+        <div class="entry-desc">A comprehensive analysis of 15 years of ASER data shows no significant improvement in learning levels despite large increases in school enrollment. The finding sparks a national conversation and puts enormous pressure on the Government of India to shift from access-focused to learning-focused policy.</div>
+        <div class="entry-ref" onclick="window.open('https://asercentre.org/', '_blank')">🌐 ASER Centre</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2015</div>
+        <div class="entry-title">UNESCO: "Incheon Declaration — Education 2030"</div>
+        <div class="entry-meta">UNESCO · Incheon, South Korea</div>
+        <div class="entry-desc">The Incheon Declaration establishes Sustainable Development Goal 4 (SDG 4) — "Ensure inclusive and equitable quality education and promote lifelong learning opportunities for all." SDG 4.1 explicitly calls for "free, equitable and quality primary and secondary education" leading to relevant and effective learning outcomes — legally enshrining FLN as a global target.</div>
+        <div class="entry-ref" onclick="window.open('https://unesco.org/education/sdg4', '_blank')">🌐 SDG 4</div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2015</div>
+        <div class="entry-title">ASER shows only 26% of Class 3 children can read a Class 2 text</div>
+        <div class="entry-meta">Pratham · India</div>
+        <div class="entry-desc">ASER 2015 reveals the stark scale of FLN deficits: only 26% of Class 3 children in rural India can read a Class 2 text. In arithmetic, only 27% can solve a simple two-digit subtraction. These numbers become the baseline for India's eventual NIPUN Bharat mission targets.</div>
+        <div class="entry-ref" onclick="window.open('https://asercentre.org/wp-content/uploads/2022/12/ASER-2015.pdf', '_blank')">📄 ASER 2015</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2016</div>
+        <div class="entry-title">World Bank: "Ending Learning Poverty" concept launched</div>
+        <div class="entry-meta">World Bank Group · Washington D.C.</div>
+        <div class="entry-desc">The World Bank officially launches its "Ending Learning Poverty" initiative, defining "learning poverty" as the percentage of children who cannot read and understand a simple text by age 10. The initiative sets a target of reducing learning poverty by at least half by 2030.</div>
+        <div class="entry-ref" onclick="window.open('https://www.worldbank.org/en/topic/education/brief/ending-learning-poverty', '_blank')">🌐 World Bank</div>
+        <div class="entry-tags"><span class="tag global">Global</span></div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2017</div>
+        <div class="entry-title">UNESCO's Global Education Monitoring Report focuses on accountability</div>
+        <div class="entry-meta">UNESCO · Global</div>
+        <div class="entry-desc">The 2017 GEM Report highlights the accountability gap in education systems — governments that report enrollment as the primary metric rather than learning outcomes are systematically hiding the FLN crisis. The report calls for national learning assessments that genuinely measure FLN competencies.</div>
+        <div class="entry-ref" onclick="window.open('https://unesco.org/education/global-education-monitoring-report-2017', '_blank')">🌐 UNESCO GEM Report</div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2018</div>
+        <div class="entry-title">UNICEF launches FLN Hub</div>
+        <div class="entry-meta">UNICEF · Global</div>
+        <div class="entry-desc">UNICEF establishes the Foundational Learning Hub (FLN Hub), a global coordination mechanism for FLN policy, research, and programming. The FLN Hub consolidates UNICEF's work across 100+ countries into a unified framework and becomes the primary global resource for FLN evidence and best practices.</div>
+        <div class="entry-ref" onclick="window.open('https://www.unicef.org/flnhub/', '_blank')">🌐 UNICEF FLN Hub</div>
+        <div class="entry-tags"><span class="tag global">Global</span></div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2018</div>
+        <div class="entry-title">MIT J-PAL: "Improving learning outcomes in low and middle-income countries" — meta-analysis</div>
+        <div class="entry-meta">Abhijit Banerjee, Amy b. Liu, Karthik A. Muralidharan, et al. · J-PAL · Global</div>
+        <div class="entry-desc">J-PAL publishes a comprehensive meta-analysis of 126 RCTs on improving learning outcomes, finding that the most effective interventions combine: (1) adaptive instruction, (2) parental engagement, and (3) teacher training. The study provides the evidence base for the NEP 2020's multi-pronged FLN approach.</div>
+        <div class="entry-ref" onclick="window.open('https://www.povertyactionlab.org/', '_blank')">🌐 J-PAL</div>
+      </div>
+    </div>
+
+    <div class="entry newspaper">
+      <div class="entry-card">
+        <div class="entry-year">2019</div>
+        <div class="entry-title">"India's education emergency" — The Hindu, Times of India, Indian Express</div>
+        <div class="entry-meta">Indian Media</div>
+        <div class="entry-desc">Several major Indian newspapers run investigative series on India's "education emergency," citing ASER data to show that a decade of school expansion had not improved learning outcomes. The coverage coincides with the government's drafting of the National Education Policy 2020.</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag newspaper">Media</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Era 5: Policy Revolution -->
+<div class="era-block">
+  <div class="era-header">
+    <span class="era-title">Policy Revolution &amp; Mission Mode &nbsp;·&nbsp; 2020–2022</span>
+    <div class="era-line"></div>
+  </div>
+
+  <div class="timeline">
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2020</div>
+        <div class="entry-title">India's National Education Policy (NEP) 2020</div>
+        <div class="entry-meta">Government of India · Ministry of Education</div>
+        <div class="entry-desc">The Government of India releases NEP 2020, its first major education policy overhaul in 34 years. NEP 2020 makes FLN the foundational priority of India's education system, stating that "foundational literacy and numeracy" must be achieved by all children by the end of Grade 3. The policy uses the term FLN explicitly and mandates a National Mission for Foundational Literacy and Numeracy (which becomes NIPUN Bharat).</div>
+        <div class="entry-ref" onclick="window.open('https://www.education.gov.in/en/nep', '_blank')">🌐 NEP 2020</div>
+        <div class="entry-tags"><span class="tag india">India</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2020</div>
+        <div class="entry-title">UNESCO's "Global Education Coalition" established</div>
+        <div class="entry-meta">UNESCO · Global COVID-19 Response</div>
+        <div class="entry-desc">UNESCO establishes the Global Education Coalition in response to COVID-19 school closures, with FLN as a central concern. The coalition highlights the risk of learning regression during prolonged school closures, especially for students who had not yet achieved foundational literacy. This accelerates global investment in adaptive digital FLN tools.</div>
+        <div class="entry-ref" onclick="window.open('https://en.unesco.org/covid19/educationresponse', '_blank')">🌐 UNESCO COVID Response</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2020</div>
+        <div class="entry-title">World Bank: "Beaten or Left Behind — How COVID-19 could widen classroom gaps"</div>
+        <div class="entry-meta">World Bank Group · Global</div>
+        <div class="entry-desc">The World Bank publishes a major report warning that COVID-19 school closures risk reversing decades of progress in FLN. Students who were already behind before closures face the greatest risk of permanent learning loss. The report calls for rapid deployment of adaptive remediation tools.</div>
+        <div class="entry-ref" onclick="window.open('https://www.worldbank.org/en/topic/education', '_blank')">🌐 World Bank</div>
+        <div class="entry-tags"><span class="tag global">Global</span></div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2021</div>
+        <div class="entry-title">NIPUN Bharat Mission officially launched</div>
+        <div class="entry-meta">Government of India · Ministry of Education</div>
+        <div class="entry-desc">The National Mission for Foundational Literacy and Numeracy (NIPUN Bharat) is formally launched, with the explicit goal of ensuring every child achieves foundational literacy and numeracy by the end of Grade 3. The mission covers students ages 3-9 and sets a target of 2026-27 for nationwide coverage. NIPUN Bharat becomes India's operational FLN framework.</div>
+        <div class="entry-ref" onclick="window.open('https://nipunbharat.education.gov.in/', '_blank')">🌐 NIPUN Bharat</div>
+        <div class="entry-tags"><span class="tag india">India</span></div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2021</div>
+        <div class="entry-title">NAS (National Achievement Survey) 2021 — Class 3, 5, 8, 10</div>
+        <div class="entry-meta">Government of India · NCERT</div>
+        <div class="entry-desc">The National Achievement Survey (NAS) 2021 covers over 42 lakh students across all states. Results confirm the FLN crisis: Class 3 national average is 59% in language and 57% in mathematics. The data becomes the baseline for NIPUN Bharat's monitoring framework.</div>
+        <div class="entry-ref" onclick="window.open('https://nas.gov.in/report-card/nas-2021', '_blank')">🌐 NAS 2021</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2021</div>
+        <div class="entry-title">OECD/PISA 2022 results — global learning decline confirmed</div>
+        <div class="entry-meta">OECD · 81 countries</div>
+        <div class="entry-desc">PISA 2022 results confirm the global learning decline post-COVID. Average reading scores dropped to 2000 levels. Countries including India (which participated in 8 states) see significant drops. The results galvanize global commitment to FLN as a recovery priority.</div>
+        <div class="entry-ref" onclick="window.open('https://www.oecd.org/pisa/', '_blank')">🌐 OECD PISA</div>
+        <div class="entry-tags"><span class="tag global">Global</span></div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2022</div>
+        <div class="entry-title">NCF (National Curriculum Framework) for Foundational Stage 2022</div>
+        <div class="entry-meta">NCERT · Government of India</div>
+        <div class="entry-desc">NCERT releases the National Curriculum Framework for the Foundational Stage (NCF-FS 2022), covering ages 3-8. The framework codifies the pedagogical approach for FLN: play-based learning, CRA (Concrete-Pictorial-Abstract) approach, and bilingual instruction. This becomes the authoritative curriculum guide for NIPUN Bharat implementation.</div>
+        <div class="entry-ref" onclick="window.open('https://ncf.ncert.gov.in/#/web/home', '_blank')">🌐 NCF Portal</div>
+        <div class="entry-tags"><span class="tag india">India</span></div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2022</div>
+        <div class="entry-title">Karthik Muralidharan, Sunil Singh — "Enhancing TEacher Effectiveness in India" RCT</div>
+        <div class="entry-meta">Karthik A. Muralidharan, Sunil Singh · UC San Diego / NBER · India</div>
+        <div class="entry-desc">Muralidharan and Singh publish a major RCT showing that combining teacher training with adaptive learning software produces 2-3× better FLN outcomes than either alone. The study validates the blended approach that Tenali's platform implements.</div>
+        <div class="entry-ref" onclick="window.open('https://www.nber.org/', '_blank')">📄 NBER Working Paper</div>
+      </div>
+    </div>
+
+    <div class="entry newspaper">
+      <div class="entry-card">
+        <div class="entry-year">2022</div>
+        <div class="entry-title">"India's foundational learning crisis demands urgent action" — The Indian Express</div>
+        <div class="entry-meta">The Indian Express · India</div>
+        <div class="entry-desc">The Indian Express publishes a major investigative piece on India's FLN crisis, citing NAS 2021 data and interviewing educationists. The article notes that India has a unique window to address FLN before a demographic bulge of low-learning students enters the labor market.</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag newspaper">Media</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2022</div>
+        <div class="entry-title">World Bank: "The State of Global Learning Poverty 2022"</div>
+        <div class="entry-meta">World Bank · UNESCO · UNICEF · Global</div>
+        <div class="entry-desc">A joint World Bank, UNESCO, and UNICEF report finds that 70% of children in low and middle-income countries cannot read a simple text by age 10 — the global definition of learning poverty. The 2022 update shows that without urgent intervention, SDG 4 will not be met.</div>
+        <div class="entry-ref" onclick="window.open('https://www.worldbank.org/en/topic/education/brief/ending-learning-poverty', '_blank')">🌐 World Bank</div>
+        <div class="entry-tags"><span class="tag global">Global</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Era 6: Current Period -->
+<div class="era-block">
+  <div class="era-header">
+    <span class="era-title">Mission Implementation &amp; Digital Acceleration &nbsp;·&nbsp; 2023–2025</span>
+    <div class="era-line"></div>
+  </div>
+
+  <div class="timeline">
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2023</div>
+        <div class="entry-title">NCF 2023 (National Curriculum Framework) for Stages 3-5</div>
+        <div class="entry-meta">NCERT · Government of India</div>
+        <div class="entry-desc">NCERT releases NCF 2023, extending the curriculum framework to cover Stages 3 (Grades 6-8), 4 (Grades 9-10), and 5 (Grades 11-12). While NCF-FS 2022 covers the 3-8 age group for FLN specifically, NCF 2023 addresses how foundational gaps persist into secondary education and require remediation strategies for older students (the Tenali age range of 10-16).</div>
+        <div class="entry-ref" onclick="window.open('https://ncf.ncert.gov.in/#/web/home', '_blank')">🌐 NCF Portal</div>
+        <div class="entry-tags"><span class="tag india">India</span></div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2023</div>
+        <div class="entry-title">"Foundational Learning in the Age of AI" — UNESCO policy brief</div>
+        <div class="entry-meta">UNESCO · Global</div>
+        <div class="entry-desc">UNESCO publishes a policy brief exploring how AI can accelerate FLN, particularly in low-resource contexts. The brief identifies adaptive learning as the most promising AI application and sets ethical guidelines for AI in FLN — including transparency, data privacy, and the necessity of human oversight.</div>
+        <div class="entry-ref" onclick="window.open('https://unesco.org', '_blank')">🌐 UNESCO</div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2024</div>
+        <div class="entry-title">ASER 2024: Continued stagnation in FLN outcomes</div>
+        <div class="entry-meta">Pratham / ASER Centre · India</div>
+        <div class="entry-desc">ASER 2024 shows that FLN outcomes remain largely unchanged since 2019. 43% of Class 3 students cannot read a simple paragraph. 50% of Class 5 students cannot do two-digit subtraction. The report emphasizes that school reopening after COVID has not automatically restored learning levels, and targeted intervention is necessary.</div>
+        <div class="entry-ref" onclick="window.open('https://asercentre.org/wp-content/uploads/2022/12/ASER_2024_Final-Report_13_2_24.pdf', '_blank')">📄 ASER 2024 Full Report</div>
+        <div class="entry-ref" onclick="window.open('https://asercentre.org/wp-content/uploads/2022/12/ASER-2024-National-findings.pdf', '_blank')">📄 ASER 2024 National Findings</div>
+        <div class="entry-tags"><span class="tag india">India</span><span class="tag report">Report</span></div>
+      </div>
+    </div>
+
+    <div class="entry global">
+      <div class="entry-card">
+        <div class="entry-year">2024</div>
+        <div class="entry-title">World Bank &amp; UNICEF: "Mission 1 Billion" — FLN acceleration campaign</div>
+        <div class="entry-meta">World Bank · UNICEF · Global</div>
+        <div class="entry-desc">The World Bank and UNICEF launch Mission 1 Billion, an ambitious campaign to ensure 1 billion children achieve FLN by 2030. The campaign combines policy advocacy, government partnerships, and direct funding for adaptive learning tool development. India is identified as the highest-priority country.</div>
+        <div class="entry-ref" onclick="window.open('https://www.worldbank.org/en/topic/education', '_blank')">🌐 World Bank</div>
+        <div class="entry-tags"><span class="tag global">Global</span></div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2024</div>
+        <div class="entry-title">NIPUN Bharat dashboard — 14 states report FLN progress</div>
+        <div class="entry-meta">Ministry of Education · Government of India</div>
+        <div class="entry-desc">NIPUN Bharat's real-time monitoring dashboard shows that 14 states are actively implementing the mission with reported improvements. However, 12 states remain in early stages. The dashboard uses UDISE+ data for school-level tracking of FLN outcomes — the first time India has a real-time FLN monitoring system.</div>
+        <div class="entry-ref" onclick="window.open('https://nipunbharat.education.gov.in/', '_blank')">🌐 NIPUN Bharat</div>
+        <div class="entry-tags"><span class="tag india">India</span></div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2024</div>
+        <div class="entry-title">"Enhancing Foundational Literacy and Numeracy in India: Key Strategies and Insights" — iDreamEducation</div>
+        <div class="entry-meta">iDreamEducation · India</div>
+        <div class="entry-desc">A comprehensive analysis of India's FLN landscape, identifying key strategies for bridging the gap: adaptive digital tools, teacher capacity building, community engagement, and family involvement. The paper specifically cites Manjul Bhargava's NEP 2020 observation that students who fall behind rarely catch up without targeted intervention.</div>
+        <div class="entry-ref" onclick="window.open('https://www.idreameducation.org/blog/foundational-literacy-numeracy-fln-india/', '_blank')">🌐 iDreamEducation</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2025</div>
+        <div class="entry-title">"Exploring Behavioral Patterns and Predicting Academic Success in Adaptive Mathematics Learning Systems" — Springer</div>
+        <div class="entry-meta">Springer · Lecture Notes in Social Networks</div>
+        <div class="entry-desc">A 2025 Springer publication explores how machine learning can predict academic success in adaptive mathematics learning systems. The research specifically examines the behavioral signals (time-on-task, error patterns, hint usage) that predict learning outcomes — providing a scientific basis for the adaptive algorithms used in platforms like Tenali.</div>
+        <div class="entry-ref" onclick="window.open('https://link.springer.com/chapter/10.1007/978-3-031-99997-0_15', '_blank')">📄 Springer Link</div>
+      </div>
+    </div>
+
+    <div class="entry research">
+      <div class="entry-card">
+        <div class="entry-year">2025</div>
+        <div class="entry-title">"Beyond Static Question Banks: Dynamic Knowledge Expansion via LLM-Automated Graph Construction" — arXiv</div>
+        <div class="entry-meta">arXiv preprint · 2026 (preprint 2025)</div>
+        <div class="entry-desc">An arXiv preprint explores how LLMs can dynamically expand knowledge graphs for adaptive learning, moving beyond static question banks. The paper demonstrates that LLM-driven concept mapping can continuously adapt to individual learner knowledge states — a direction directly relevant to Tenali's architecture.</div>
+        <div class="entry-ref" onclick="window.open('https://doi.org/10.48550/arXiv.2602.00020', '_blank')">📄 arXiv:2602.00020</div>
+      </div>
+    </div>
+
+    <div class="entry report">
+      <div class="entry-card">
+        <div class="entry-year">2025</div>
+        <div class="entry-title">NIPUN Bharat Phase 2 — extending to Classes 4-8 for remedial FLN</div>
+        <div class="entry-meta">Ministry of Education · Government of India</div>
+        <div class="entry-desc">The Ministry of Education announces NIPUN Bharat Phase 2, extending FLN intervention to Classes 4-8 for students who have not achieved foundational literacy. This is a direct acknowledgment that the FLN window extends beyond Grade 3 — validating Tenali's focus on ages 10-16 as a legitimate and necessary FLN remediation target.</div>
+        <div class="entry-ref" onclick="window.open('https://nipunbharat.education.gov.in/', '_blank')">🌐 NIPUN Bharat</div>
+        <div class="entry-tags"><span class="tag india">India</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- References -->
+<div class="references-section" id="references">
+  <h2>References</h2>
+
+  <div class="ref-group">
+    <div class="ref-group-title">Government Reports &amp; Policy Documents</div>
+    <div class="ref-item">
+      <span class="ref-number">[1]</span>
+      <div class="ref-content">
+        <div class="ref-title">National Education Policy 2020 — Government of India, Ministry of Education</div>
+        <a class="ref-link" href="https://www.education.gov.in/en/nep" target="_blank">https://www.education.gov.in/en/nep</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[2]</span>
+      <div class="ref-content">
+        <div class="ref-title">National Curriculum Framework for Foundational Stage (NCF-FS) 2022 — NCERT</div>
+        <a class="ref-link" href="https://ncf.ncert.gov.in/#/web/home" target="_blank">https://ncf.ncert.gov.in/#/web/home</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[3]</span>
+      <div class="ref-content">
+        <div class="ref-title">NIPUN Bharat Mission — Ministry of Education, Government of India</div>
+        <a class="ref-link" href="https://nipunbharat.education.gov.in/" target="_blank">https://nipunbharat.education.gov.in/</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[4]</span>
+      <div class="ref-content">
+        <div class="ref-title">National Achievement Survey (NAS) 2021 — Ministry of Education, Government of India</div>
+        <a class="ref-link" href="https://nas.gov.in/report-card/nas-2021" target="_blank">https://nas.gov.in/report-card/nas-2021</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[5]</span>
+      <div class="ref-content">
+        <div class="ref-title">NCF 2023 (National Curriculum Framework) — NCERT, Government of India</div>
+        <a class="ref-link" href="https://ncf.ncert.gov.in/#/web/home" target="_blank">https://ncf.ncert.gov.in/#/web/home</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ref-group">
+    <div class="ref-group-title">ASER Reports</div>
+    <div class="ref-item">
+      <span class="ref-number">[6]</span>
+      <div class="ref-content">
+        <div class="ref-title">ASER 2024: Full Report — ASER Centre / Pratham Education Foundation (2024)</div>
+        <a class="ref-link" href="https://asercentre.org/wp-content/uploads/2022/12/ASER_2024_Final-Report_13_2_24.pdf" target="_blank">https://asercentre.org/...ASER_2024_Final-Report_13_2_24.pdf</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[7]</span>
+      <div class="ref-content">
+        <div class="ref-title">ASER 2024: National Findings — ASER Centre / Pratham Education Foundation (2024)</div>
+        <a class="ref-link" href="https://asercentre.org/wp-content/uploads/2022/12/ASER-2024-National-findings.pdf" target="_blank">https://asercentre.org/...ASER-2024-National-findings.pdf</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[8]</span>
+      <div class="ref-content">
+        <div class="ref-title">ASER Centre — About — Pratham Education Foundation</div>
+        <a class="ref-link" href="https://asercentre.org/" target="_blank">https://asercentre.org/</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ref-group">
+    <div class="ref-group-title">International Bodies</div>
+    <div class="ref-item">
+      <span class="ref-number">[9]</span>
+      <div class="ref-content">
+        <div class="ref-title">UNESCO — Education for All / SDG 4</div>
+        <a class="ref-link" href="https://unesco.org/education/education-for-all" target="_blank">https://unesco.org/education/education-for-all</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[10]</span>
+      <div class="ref-content">
+        <div class="ref-title">World Bank — Ending Learning Poverty</div>
+        <a class="ref-link" href="https://www.worldbank.org/en/topic/education/brief/ending-learning-poverty" target="_blank">https://www.worldbank.org/en/topic/education/brief/ending-learning-poverty</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[11]</span>
+      <div class="ref-content">
+        <div class="ref-title">UNICEF FLN Hub — Resources for Foundational Literacy and Numeracy</div>
+        <a class="ref-link" href="https://www.unicef.org/flnhub/" target="_blank">https://www.unicef.org/flnhub/</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[12]</span>
+      <div class="ref-content">
+        <div class="ref-title">OECD — Programme for International Student Assessment (PISA)</div>
+        <a class="ref-link" href="https://www.oecd.org/pisa/" target="_blank">https://www.oecd.org/pisa/</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[13]</span>
+      <div class="ref-content">
+        <div class="ref-title">UNESCO — Global Education Monitoring Report 2017</div>
+        <a class="ref-link" href="https://unesco.org/education/global-education-monitoring-report-2017" target="_blank">https://unesco.org/...global-education-monitoring-report-2017</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ref-group">
+    <div class="ref-group-title">Academic Papers</div>
+    <div class="ref-item">
+      <span class="ref-number">[14]</span>
+      <div class="ref-content">
+        <div class="ref-title">"Exploring Behavioral Patterns and Predicting Academic Success: Insights from Machine Learning in Adaptive Mathematics Learning Systems" — Springer, Lecture Notes in Social Networks (2025)</div>
+        <a class="ref-link" href="https://link.springer.com/chapter/10.1007/978-3-031-99997-0_15" target="_blank">https://link.springer.com/chapter/10.1007/978-3-031-99997-0_15</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[15]</span>
+      <div class="ref-content">
+        <div class="ref-title">"Beyond Static Question Banks: Dynamic Knowledge Expansion via LLM-Automated Graph Construction" — arXiv preprint arXiv:2602.00020 (2026)</div>
+        <a class="ref-link" href="https://doi.org/10.48550/arXiv.2602.00020" target="_blank">https://doi.org/10.48550/arXiv.2602.00020</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[16]</span>
+      <div class="ref-content">
+        <div class="ref-title">Cognitive Load Theory — Sweller (1988/1989)</div>
+        <a class="ref-link" href="https://www.sciencedirect.com/science/article/pii/0362161288900296" target="_blank">https://www.sciencedirect.com/science/article/pii/0362161288900296</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[17]</span>
+      <div class="ref-content">
+        <div class="ref-title">J-PAL (Abhijit Banerjee, Esther Duflo) — Improving learning outcomes RCTs</div>
+        <a class="ref-link" href="https://www.povertyactionlab.org/" target="_blank">https://www.povertyactionlab.org/</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[18]</span>
+      <div class="ref-content">
+        <div class="ref-title">"Enhancing Foundational Literacy and Numeracy in India: Key Strategies and Insights" — iDreamEducation (2024)</div>
+        <a class="ref-link" href="https://www.idreameducation.org/blog/foundational-literacy-numeracy-fln-india/" target="_blank">https://www.idreameducation.org/...foundational-literacy-numeracy-fln-india/</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ref-group">
+    <div class="ref-group-title">Organizations</div>
+    <div class="ref-item">
+      <span class="ref-number">[19]</span>
+      <div class="ref-content">
+        <div class="ref-title">Pratham Education Foundation — "Every Child In School and Learning Well"</div>
+        <a class="ref-link" href="https://www.pratham.org/" target="_blank">https://www.pratham.org/</a>
+      </div>
+    </div>
+    <div class="ref-item">
+      <span class="ref-number">[20]</span>
+      <div class="ref-content">
+        <div class="ref-title">Central Square Foundation — CSF's Approach to System Reform for FLN</div>
+        <a class="ref-link" href="https://www.centralsquarefoundation.org/articles/csfs-approach-to-system-reform-for-foundational-literacy-and-numeracy-fln" target="_blank">https://www.centralsquarefoundation.org/...fln</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<a class="back-to-top" href="#">↑ Back to top</a>
+
+<script>
+  // Scroll-triggered animations via Intersection Observer
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.animationPlayState = 'running';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.entry').forEach(el => {
+    el.style.animationPlayState = 'paused';
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
